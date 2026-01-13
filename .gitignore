@@ -1,0 +1,26 @@
+# Root gitignore for Shopifyr monorepo
+
+# macOS
+.DS_Store
+
+# IDEs/editors
+.idea/
+.vscode/
+*.iml
+
+# Backend build
+backend/target/
+backend/.mvn/wrapper/maven-wrapper.jar
+
+# Frontend build
+frontend/node_modules/
+frontend/.next/
+frontend/out/
+
+# Logs
+logs/
+*.log
+
+# Environment/config
+.env
+.env.*
