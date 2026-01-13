@@ -25,3 +25,4 @@ logs/
 .env
 .env.*
 backend/src/main/resources/application-dev.properties
+Shopifyr-backend-roadmap.md
