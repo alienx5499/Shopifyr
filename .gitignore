@@ -24,4 +24,4 @@ logs/
 # Environment/config
 .env
 .env.*
-backend/src/main/resources/application-dev.propertiesbackend/src/main/resources/application-dev.properties
+backend/src/main/resources/application-dev.properties
