@@ -33,6 +33,7 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/auth/**").permitAll()
+                        .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
                         .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/products/**").permitAll() // Public product listing
                         .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/categories/**").permitAll() // Public categories
                         .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/brands/**").permitAll() // Public brands
