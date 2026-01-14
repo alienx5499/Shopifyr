@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { productApi, categoryApi, brandApi, cartApi } from '@/lib/api';
+import { productApi, categoryApi, brandApi, cartApi, fileApi } from '@/lib/api';
 
 interface Product {
   id: number;
@@ -25,6 +25,8 @@ export default function ProductsPage() {
   const [brandFilter, setBrandFilter] = useState<number | null>(null);
   const [minPrice, setMinPrice] = useState('');
   const [maxPrice, setMaxPrice] = useState('');
+  const [uploading, setUploading] = useState(false);
+  const [uploadedUrl, setUploadedUrl] = useState<string | null>(null);
 
   useEffect(() => {
     loadData();
@@ -69,6 +71,22 @@ export default function ProductsPage() {
     router.push('/login');
   };
 
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploading(true);
+    try {
+      const { url } = await fileApi.uploadImage(file);
+      setUploadedUrl(url);
+      alert('Image uploaded. Use this URL as imageUrl when creating/updating products: ' + url);
+    } catch (err: any) {
+      alert(err.response?.data?.message || 'Failed to upload image');
+    } finally {
+      setUploading(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-white p-8">
@@ -100,6 +118,33 @@ export default function ProductsPage() {
       </header>
 
       <main className="container mx-auto p-8">
+        <div className="mb-6 border border-black p-4">
+          <h2 className="mb-2 text-xl font-bold text-black">Upload Product Image (Demo)</h2>
+          <p className="mb-2 text-sm text-black">
+            Upload an image to the backend. The returned URL can be used as <code>imageUrl</code> in the admin/product APIs.
+          </p>
+          <div className="flex items-center gap-4">
+            <input
+              type="file"
+              accept="image/*"
+              onChange={handleFileChange}
+              className="text-black"
+            />
+            {uploading && <span className="text-sm text-black">Uploading...</span>}
+          </div>
+          {uploadedUrl && (
+            <div className="mt-3 flex items-center gap-4">
+              <div className="text-xs text-black break-all">
+                URL: <span>{uploadedUrl}</span>
+              </div>
+              <img
+                src={`http://localhost:8080${uploadedUrl}`}
+                alt="Uploaded"
+                className="h-16 w-16 border border-black object-cover"
+              />
+            </div>
+          )}
+        </div>
         <div className="mb-6 border border-black p-4">
           <h2 className="mb-4 text-xl font-bold text-black">Filters</h2>
           <div className="grid grid-cols-1 gap-4 md:grid-cols-4">

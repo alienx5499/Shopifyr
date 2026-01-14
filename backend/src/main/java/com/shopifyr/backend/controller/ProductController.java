@@ -2,6 +2,7 @@ package com.shopifyr.backend.controller;
 
 import com.shopifyr.backend.dto.ProductRequest;
 import com.shopifyr.backend.dto.ProductResponse;
+import com.shopifyr.backend.dto.ProductWithReviewsResponse;
 import com.shopifyr.backend.service.ProductService;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
@@ -48,9 +49,47 @@ public class ProductController {
         return ResponseEntity.ok(products);
     }
 
+    @GetMapping("/search")
+    public ResponseEntity<Page<ProductResponse>> searchProductsByQuery(
+            @RequestParam String q,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(defaultValue = "id") String sortBy,
+            @RequestParam(defaultValue = "ASC") String sortDir
+    ) {
+        Sort sort = sortDir.equalsIgnoreCase("DESC")
+                ? Sort.by(sortBy).descending()
+                : Sort.by(sortBy).ascending();
+        Pageable pageable = PageRequest.of(page, size, sort);
+
+        Page<ProductResponse> products = productService.searchProductsByQuery(q, pageable);
+        return ResponseEntity.ok(products);
+    }
+
+    @GetMapping("/featured")
+    public ResponseEntity<Page<ProductResponse>> getFeaturedProducts(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(defaultValue = "id") String sortBy,
+            @RequestParam(defaultValue = "ASC") String sortDir
+    ) {
+        Sort sort = sortDir.equalsIgnoreCase("DESC")
+                ? Sort.by(sortBy).descending()
+                : Sort.by(sortBy).ascending();
+        Pageable pageable = PageRequest.of(page, size, sort);
+
+        Page<ProductResponse> products = productService.getFeaturedProducts(pageable);
+        return ResponseEntity.ok(products);
+    }
+
     @GetMapping("/{id}")
     public ResponseEntity<ProductResponse> getProductById(@PathVariable Long id) {
         return ResponseEntity.ok(productService.getProductById(id));
+    }
+
+    @GetMapping("/{id}/with-reviews")
+    public ResponseEntity<ProductWithReviewsResponse> getProductWithReviews(@PathVariable Long id) {
+        return ResponseEntity.ok(productService.getProductWithReviews(id));
     }
 
     @PostMapping

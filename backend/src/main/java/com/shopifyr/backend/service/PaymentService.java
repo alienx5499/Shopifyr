@@ -1,6 +1,5 @@
 package com.shopifyr.backend.service;
 
-import com.shopifyr.backend.dto.PaymentRequest;
 import com.shopifyr.backend.exception.ResourceNotFoundException;
 import com.shopifyr.backend.model.Order;
 import com.shopifyr.backend.model.OrderStatus;
@@ -10,6 +9,10 @@ import com.shopifyr.backend.repository.OrderRepository;
 import com.shopifyr.backend.repository.PaymentRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.math.BigDecimal;
+import java.util.Map;
+import java.util.UUID;
 
 @Service
 public class PaymentService {
@@ -43,6 +46,42 @@ public class PaymentService {
                 .build();
 
         return paymentRepository.save(payment);
+    }
+
+    /**
+     * Create a payment "session" that mimics an external provider integration.
+     * In a real-world scenario, this is where you would call Stripe/Razorpay
+     * SDKs or REST APIs and receive a hosted checkout URL.
+     */
+    @Transactional
+    public com.shopifyr.backend.dto.PaymentSessionResponse createPaymentSession(Long orderId, String provider) {
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new ResourceNotFoundException("Order not found"));
+
+        if (order.getStatus() != OrderStatus.PENDING) {
+            throw new IllegalArgumentException("Order is not in PENDING status");
+        }
+
+        // Ensure a payment record exists
+        Payment payment = paymentRepository.findByOrderId(orderId)
+                .orElseGet(() -> initiatePayment(orderId, provider));
+
+        BigDecimal amount = payment.getAmount();
+        String normalizedProvider = provider != null ? provider.toUpperCase() : "STRIPE";
+
+        // Fake checkout URL that frontends can redirect to for demo purposes
+        String checkoutUrl = "https://payments.example.com/checkout/"
+                + normalizedProvider.toLowerCase()
+                + "/session/"
+                + UUID.randomUUID();
+
+        return new com.shopifyr.backend.dto.PaymentSessionResponse(
+                order.getId(),
+                amount,
+                normalizedProvider,
+                payment.getStatus().name(),
+                checkoutUrl
+        );
     }
 
     @Transactional
@@ -81,5 +120,39 @@ public class PaymentService {
 
         payment.setStatus(PaymentStatus.FAILED);
         return paymentRepository.save(payment);
+    }
+
+    /**
+     * Handle generic webhooks from payment providers. This implementation
+     * is intentionally simple and acts as a stub that you can extend with
+     * real Stripe/Razorpay payload parsing and signature verification.
+     */
+    @Transactional
+    public void handleWebhook(String provider, Map<String, Object> payload, Map<String, String> headers) {
+        // In a real integration:
+        // 1. Verify signature from headers
+        // 2. Parse event type and data
+        // 3. Locate order/payment by external reference
+        // 4. Update Payment + Order status accordingly
+
+        Object orderIdValue = payload.get("orderId");
+        Object providerPaymentIdValue = payload.get("providerPaymentId");
+
+        if (orderIdValue == null) {
+            // Nothing we can safely do without an order reference
+            return;
+        }
+
+        Long orderId;
+        try {
+            orderId = Long.valueOf(orderIdValue.toString());
+        } catch (NumberFormatException ex) {
+            return;
+        }
+
+        String providerPaymentId = providerPaymentIdValue != null ? providerPaymentIdValue.toString() : null;
+
+        // For demo purposes, treat any webhook with an orderId as a successful payment
+        confirmPayment(orderId, providerPaymentId != null ? providerPaymentId : "webhook-" + provider);
     }
 }

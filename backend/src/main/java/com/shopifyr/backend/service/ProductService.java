@@ -11,6 +11,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.shopifyr.backend.dto.ProductRequest;
 import com.shopifyr.backend.dto.ProductResponse;
+import com.shopifyr.backend.dto.ProductWithReviewsResponse;
+import com.shopifyr.backend.dto.ReviewResponse;
 import com.shopifyr.backend.exception.ResourceNotFoundException;
 import com.shopifyr.backend.model.Brand;
 import com.shopifyr.backend.model.Category;
@@ -18,6 +20,7 @@ import com.shopifyr.backend.model.Product;
 import com.shopifyr.backend.repository.BrandRepository;
 import com.shopifyr.backend.repository.CategoryRepository;
 import com.shopifyr.backend.repository.ProductRepository;
+import com.shopifyr.backend.repository.ReviewRepository;
 
 @Service
 public class ProductService {
@@ -25,13 +28,16 @@ public class ProductService {
     private final ProductRepository productRepository;
     private final CategoryRepository categoryRepository;
     private final BrandRepository brandRepository;
+    private final ReviewRepository reviewRepository;
 
     public ProductService(ProductRepository productRepository,
                           CategoryRepository categoryRepository,
-                          BrandRepository brandRepository) {
+                          BrandRepository brandRepository,
+                          ReviewRepository reviewRepository) {
         this.productRepository = productRepository;
         this.categoryRepository = categoryRepository;
         this.brandRepository = brandRepository;
+        this.reviewRepository = reviewRepository;
     }
 
     @Transactional
@@ -115,6 +121,55 @@ public class ProductService {
                 categoryId, brandId, minPrice, maxPrice, isActive, pageable
         );
         return products.map(this::toResponse);
+    }
+
+    @Transactional(readOnly = true)
+    public Page<ProductResponse> searchProductsByQuery(String query, Pageable pageable) {
+        Page<Product> products = productRepository.searchActiveProductsByQuery(query, pageable);
+        return products.map(this::toResponse);
+    }
+
+    @Transactional(readOnly = true)
+    public Page<ProductResponse> getFeaturedProducts(Pageable pageable) {
+        Page<Product> products = productRepository.findByIsActiveTrueAndIsFeaturedTrue(pageable);
+        return products.map(this::toResponse);
+    }
+
+    @Transactional(readOnly = true)
+    public ProductWithReviewsResponse getProductWithReviews(Long id) {
+        Product product = productRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
+
+        var reviews = reviewRepository.findByProductId(id).stream()
+                .map(r -> new ReviewResponse(
+                        r.getId(),
+                        r.getUser().getId(),
+                        r.getUser().getUsername(),
+                        r.getRating(),
+                        r.getComment(),
+                        r.getCreatedAt()
+                ))
+                .toList();
+
+        Double avgRating = reviewRepository.getAverageRatingByProductId(id);
+
+        return new ProductWithReviewsResponse(
+                product.getId(),
+                product.getName(),
+                product.getDescription(),
+                product.getPrice(),
+                product.getImageUrl(),
+                product.getCategory().getId(),
+                product.getCategory().getName(),
+                product.getBrand() != null ? product.getBrand().getId() : null,
+                product.getBrand() != null ? product.getBrand().getName() : null,
+                product.getIsActive(),
+                product.getIsFeatured(),
+                product.getCreatedAt(),
+                product.getUpdatedAt(),
+                avgRating != null ? avgRating : 0.0,
+                reviews
+        );
     }
 
     @Transactional

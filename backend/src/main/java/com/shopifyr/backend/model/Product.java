@@ -45,6 +45,10 @@ public class Product {
     @Builder.Default
     private Boolean isActive = true;
 
+    @Column(nullable = false)
+    @Builder.Default
+    private Boolean isFeatured = false;
+
     @Column(nullable = false, updatable = false)
     @Builder.Default
     private LocalDateTime createdAt = LocalDateTime.now();
