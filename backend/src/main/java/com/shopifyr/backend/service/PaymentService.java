@@ -16,11 +16,14 @@ public class PaymentService {
 
     private final PaymentRepository paymentRepository;
     private final OrderRepository orderRepository;
+    private final EmailService emailService;
 
     public PaymentService(PaymentRepository paymentRepository,
-                          OrderRepository orderRepository) {
+                          OrderRepository orderRepository,
+                          EmailService emailService) {
         this.paymentRepository = paymentRepository;
         this.orderRepository = orderRepository;
+        this.emailService = emailService;
     }
 
     @Transactional
@@ -55,6 +58,18 @@ public class PaymentService {
         Order order = payment.getOrder();
         order.setStatus(OrderStatus.PAID);
         orderRepository.save(order);
+
+        // Send order status update email
+        try {
+            emailService.sendOrderStatusUpdateEmail(
+                    order.getUser().getEmail(),
+                    order.getId(),
+                    order.getStatus().name()
+            );
+        } catch (Exception e) {
+            // Log error but don't fail the payment
+            System.err.println("Failed to send order status update email: " + e.getMessage());
+        }
 
         return payment;
     }

@@ -28,15 +28,18 @@ public class OrderService {
     private final CartRepository cartRepository;
     private final UserRepository userRepository;
     private final InventoryRepository inventoryRepository;
+    private final EmailService emailService;
 
     public OrderService(OrderRepository orderRepository,
                         CartRepository cartRepository,
                         UserRepository userRepository,
-                        InventoryRepository inventoryRepository) {
+                        InventoryRepository inventoryRepository,
+                        EmailService emailService) {
         this.orderRepository = orderRepository;
         this.cartRepository = cartRepository;
         this.userRepository = userRepository;
         this.inventoryRepository = inventoryRepository;
+        this.emailService = emailService;
     }
 
     @Transactional
@@ -88,6 +91,18 @@ public class OrderService {
         // Clear cart
         cart.getItems().clear();
         cartRepository.save(cart);
+
+        // Send order confirmation email
+        try {
+            emailService.sendOrderConfirmationEmail(
+                    user.getEmail(),
+                    order.getId(),
+                    order.getTotalAmount().doubleValue()
+            );
+        } catch (Exception e) {
+            // Log error but don't fail the order
+            System.err.println("Failed to send order confirmation email: " + e.getMessage());
+        }
 
         return toResponse(order);
     }
