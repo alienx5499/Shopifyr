@@ -30,10 +30,10 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/auth/**").permitAll()
-                        .requestMatchers("GET", "/api/products/**").permitAll() // Public product listing
-                        .requestMatchers("GET", "/api/categories/**").permitAll() // Public categories
-                        .requestMatchers("GET", "/api/brands/**").permitAll() // Public brands
-                        .requestMatchers("GET", "/api/reviews/product/**").permitAll() // Public reviews
+                        .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/products/**").permitAll() // Public product listing
+                        .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/categories/**").permitAll() // Public categories
+                        .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/brands/**").permitAll() // Public brands
+                        .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/reviews/product/**").permitAll() // Public reviews
                         .anyRequest().authenticated()
                 )
                 .sessionManagement(session -> session
