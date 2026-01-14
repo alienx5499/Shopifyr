@@ -9,6 +9,8 @@ import com.shopifyr.backend.model.Product;
 import com.shopifyr.backend.repository.BrandRepository;
 import com.shopifyr.backend.repository.CategoryRepository;
 import com.shopifyr.backend.repository.ProductRepository;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -32,6 +34,7 @@ public class ProductService {
     }
 
     @Transactional
+    @CacheEvict(value = {"products", "bestsellers"}, allEntries = true)
     public ProductResponse createProduct(ProductRequest request) {
         Category category = categoryRepository.findById(request.categoryId())
                 .orElseThrow(() -> new ResourceNotFoundException("Category not found"));
@@ -57,6 +60,7 @@ public class ProductService {
     }
 
     @Transactional
+    @CacheEvict(value = {"product", "products", "bestsellers"}, allEntries = true)
     public ProductResponse updateProduct(Long id, ProductRequest request) {
         Product product = productRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
@@ -84,6 +88,7 @@ public class ProductService {
         return toResponse(product);
     }
 
+    @Cacheable(value = "product", key = "#id")
     public ProductResponse getProductById(Long id) {
         Product product = productRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
@@ -109,6 +114,7 @@ public class ProductService {
     }
 
     @Transactional
+    @CacheEvict(value = {"product", "products", "bestsellers"}, allEntries = true)
     public void deleteProduct(Long id) {
         if (!productRepository.existsById(id)) {
             throw new ResourceNotFoundException("Product not found");

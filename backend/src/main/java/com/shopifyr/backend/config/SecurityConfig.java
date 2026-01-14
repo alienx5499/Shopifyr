@@ -33,6 +33,7 @@ public class SecurityConfig {
                         .requestMatchers("GET", "/api/products/**").permitAll() // Public product listing
                         .requestMatchers("GET", "/api/categories/**").permitAll() // Public categories
                         .requestMatchers("GET", "/api/brands/**").permitAll() // Public brands
+                        .requestMatchers("GET", "/api/reviews/product/**").permitAll() // Public reviews
                         .anyRequest().authenticated()
                 )
                 .sessionManagement(session -> session

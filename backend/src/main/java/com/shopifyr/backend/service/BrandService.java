@@ -4,6 +4,8 @@ import com.shopifyr.backend.dto.BrandRequest;
 import com.shopifyr.backend.exception.ResourceNotFoundException;
 import com.shopifyr.backend.model.Brand;
 import com.shopifyr.backend.repository.BrandRepository;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -19,6 +21,7 @@ public class BrandService {
     }
 
     @Transactional
+    @CacheEvict(value = "brands", allEntries = true)
     public Brand createBrand(BrandRequest request) {
         if (brandRepository.existsByName(request.name())) {
             throw new IllegalArgumentException("Brand with this name already exists");
@@ -34,6 +37,7 @@ public class BrandService {
     }
 
     @Transactional
+    @CacheEvict(value = "brands", allEntries = true)
     public Brand updateBrand(Long id, BrandRequest request) {
         Brand brand = brandRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Brand not found"));
@@ -54,11 +58,13 @@ public class BrandService {
                 .orElseThrow(() -> new ResourceNotFoundException("Brand not found"));
     }
 
+    @Cacheable(value = "brands")
     public List<Brand> getAllBrands() {
         return brandRepository.findAll();
     }
 
     @Transactional
+    @CacheEvict(value = "brands", allEntries = true)
     public void deleteBrand(Long id) {
         if (!brandRepository.existsById(id)) {
             throw new ResourceNotFoundException("Brand not found");
