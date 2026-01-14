@@ -1,13 +1,5 @@
 package com.shopifyr.backend.service;
 
-import com.shopifyr.backend.dto.analytics.*;
-import com.shopifyr.backend.model.Category;
-import com.shopifyr.backend.model.Inventory;
-import com.shopifyr.backend.model.Product;
-import com.shopifyr.backend.model.User;
-import com.shopifyr.backend.repository.*;
-import org.springframework.stereotype.Service;
-
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -15,6 +7,25 @@ import java.time.YearMonth;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+
+import org.springframework.stereotype.Service;
+
+import com.shopifyr.backend.dto.analytics.CategoryRevenueDto;
+import com.shopifyr.backend.dto.analytics.DailySalesDto;
+import com.shopifyr.backend.dto.analytics.LowStockItemDto;
+import com.shopifyr.backend.dto.analytics.MonthlySalesDto;
+import com.shopifyr.backend.dto.analytics.StatusCountDto;
+import com.shopifyr.backend.dto.analytics.TopCustomerDto;
+import com.shopifyr.backend.dto.analytics.TopProductDto;
+import com.shopifyr.backend.model.Category;
+import com.shopifyr.backend.model.Product;
+import com.shopifyr.backend.model.User;
+import com.shopifyr.backend.repository.CategoryRepository;
+import com.shopifyr.backend.repository.InventoryRepository;
+import com.shopifyr.backend.repository.OrderItemAnalyticsRepository;
+import com.shopifyr.backend.repository.OrderRepository;
+import com.shopifyr.backend.repository.ProductRepository;
+import com.shopifyr.backend.repository.UserRepository;
 
 @Service
 public class AnalyticsService {

@@ -107,11 +107,13 @@ public class OrderService {
         return toResponse(order);
     }
 
+    @Transactional(readOnly = true)
     public List<OrderResponse> getUserOrders(Long userId) {
         List<Order> orders = orderRepository.findByUserIdOrderByCreatedAtDesc(userId);
         return orders.stream().map(this::toResponse).collect(Collectors.toList());
     }
 
+    @Transactional(readOnly = true)
     public OrderResponse getOrderById(Long orderId, Long userId) {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new ResourceNotFoundException("Order not found"));

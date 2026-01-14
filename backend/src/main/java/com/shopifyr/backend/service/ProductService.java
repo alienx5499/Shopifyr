@@ -1,5 +1,14 @@
 package com.shopifyr.backend.service;
 
+import java.math.BigDecimal;
+
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import com.shopifyr.backend.dto.ProductRequest;
 import com.shopifyr.backend.dto.ProductResponse;
 import com.shopifyr.backend.exception.ResourceNotFoundException;
@@ -9,14 +18,6 @@ import com.shopifyr.backend.model.Product;
 import com.shopifyr.backend.repository.BrandRepository;
 import com.shopifyr.backend.repository.CategoryRepository;
 import com.shopifyr.backend.repository.ProductRepository;
-import org.springframework.cache.annotation.CacheEvict;
-import org.springframework.cache.annotation.Cacheable;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
-import java.math.BigDecimal;
 
 @Service
 public class ProductService {
@@ -89,16 +90,19 @@ public class ProductService {
     }
 
     @Cacheable(value = "product", key = "#id")
+    @Transactional(readOnly = true)
     public ProductResponse getProductById(Long id) {
         Product product = productRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
         return toResponse(product);
     }
 
+    @Transactional(readOnly = true)
     public Page<ProductResponse> getAllProducts(Pageable pageable) {
         return productRepository.findAll(pageable).map(this::toResponse);
     }
 
+    @Transactional(readOnly = true)
     public Page<ProductResponse> searchProducts(
             Long categoryId,
             Long brandId,

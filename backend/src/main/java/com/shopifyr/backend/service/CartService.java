@@ -1,5 +1,12 @@
 package com.shopifyr.backend.service;
 
+import java.math.BigDecimal;
+import java.util.List;
+import java.util.stream.Collectors;
+
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import com.shopifyr.backend.dto.CartItemRequest;
 import com.shopifyr.backend.dto.CartItemResponse;
 import com.shopifyr.backend.dto.CartResponse;
@@ -14,12 +21,6 @@ import com.shopifyr.backend.repository.CartRepository;
 import com.shopifyr.backend.repository.InventoryRepository;
 import com.shopifyr.backend.repository.ProductRepository;
 import com.shopifyr.backend.repository.UserRepository;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
-import java.math.BigDecimal;
-import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 public class CartService {
@@ -91,6 +92,7 @@ public class CartService {
         return toResponse(cart);
     }
 
+    @Transactional(readOnly = true)
     public CartResponse getCart(Long userId) {
         Cart cart = cartRepository.findByUserId(userId)
                 .orElseGet(() -> {
