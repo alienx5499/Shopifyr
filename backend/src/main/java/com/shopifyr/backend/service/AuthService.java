@@ -46,6 +46,15 @@ public class AuthService {
                 .email(request.email())
                 .username(request.username())
                 .password(passwordEncoder.encode(request.password()))
+                .firstName(request.firstName())
+                .lastName(request.lastName())
+                .phoneNumber(request.phoneNumber())
+                .addressLine1(request.addressLine1())
+                .addressLine2(request.addressLine2())
+                .city(request.city())
+                .state(request.state())
+                .zipCode(request.zipCode())
+                .country(request.country())
                 .build();
         user.getRoles().add(customerRole);
 

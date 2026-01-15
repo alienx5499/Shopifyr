@@ -1,8 +1,11 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { productApi, categoryApi, brandApi, cartApi, fileApi } from '@/lib/api';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { productApi, categoryApi, brandApi, cartApi } from '@/lib/api';
+import { ProductCard } from '@/components/features/ProductCard';
+import toast from 'react-hot-toast';
+import { useCart } from '@/contexts/CartContext';
 
 interface Product {
   id: number;
@@ -17,39 +20,112 @@ interface Product {
 
 export default function ProductsPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const { incrementCartCount } = useCart();
+
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
   const [brands, setBrands] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+
   const [categoryFilter, setCategoryFilter] = useState<number | null>(null);
   const [brandFilter, setBrandFilter] = useState<number | null>(null);
   const [minPrice, setMinPrice] = useState('');
   const [maxPrice, setMaxPrice] = useState('');
-  const [uploading, setUploading] = useState(false);
-  const [uploadedUrl, setUploadedUrl] = useState<string | null>(null);
+  const [sortBy, setSortBy] = useState('name');
 
   useEffect(() => {
-    loadData();
-  }, [categoryFilter, brandFilter, minPrice, maxPrice]);
+    // Check for category from URL
+    const categoryParam = searchParams.get('category');
+    if (categoryParam) {
+      // Find category ID by name
+      const cat = categories.find(c => c.name === categoryParam);
+      if (cat) {
+        setCategoryFilter(cat.id);
+        // Force reload with new category
+        loadDataWithParams({ categoryId: cat.id });
+      }
+    } else {
+      loadData();
+    }
+  }, [searchParams, categories]); // Re-run when URL or categories change
+
+  useEffect(() => {
+    if (categories.length > 0 && !searchParams.get('category')) {
+      loadData();
+    }
+  }, [categoryFilter, brandFilter, minPrice, maxPrice, sortBy]);
+
+  const loadDataWithParams = async (params: any) => {
+    try {
+      setLoading(true);
+      const productsRes = await productApi.getAll({
+        page: 0,
+        size: 100,
+        categoryId: params.categoryId || categoryFilter || undefined,
+        brandId: brandFilter || undefined,
+        minPrice: minPrice ? parseFloat(minPrice) : undefined,
+        maxPrice: maxPrice ? parseFloat(maxPrice) : undefined,
+      });
+
+      // ... rest of processing
+      let productsList = productsRes.content || [];
+      if (sortBy === 'price-asc') {
+        productsList.sort((a: Product, b: Product) => a.price - b.price);
+      } else if (sortBy === 'price-desc') {
+        productsList.sort((a: Product, b: Product) => b.price - a.price);
+      } else if (sortBy === 'name') {
+        productsList.sort((a: Product, b: Product) => a.name.localeCompare(b.name));
+      }
+      setProducts(productsList);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadCategories();
+  }, []);
+
+  const loadCategories = async () => {
+    try {
+      const [categoriesRes, brandsRes] = await Promise.all([
+        categoryApi.getAll(),
+        brandApi.getAll(),
+      ]);
+      setCategories(categoriesRes);
+      setBrands(brandsRes);
+    } catch (err) {
+      console.error('Failed to load categories:', err);
+    }
+  };
 
   const loadData = async () => {
     try {
       setLoading(true);
-      const [productsRes, categoriesRes, brandsRes] = await Promise.all([
-        productApi.getAll({
-          page: 0,
-          size: 50,
-          categoryId: categoryFilter || undefined,
-          brandId: brandFilter || undefined,
-          minPrice: minPrice ? parseFloat(minPrice) : undefined,
-          maxPrice: maxPrice ? parseFloat(maxPrice) : undefined,
-        }),
-        categoryApi.getAll(),
-        brandApi.getAll(),
-      ]);
-      setProducts(productsRes.content || []);
-      setCategories(categoriesRes);
-      setBrands(brandsRes);
+      const productsRes = await productApi.getAll({
+        page: 0,
+        size: 100,
+        categoryId: categoryFilter || undefined,
+        brandId: brandFilter || undefined,
+        minPrice: minPrice ? parseFloat(minPrice) : undefined,
+        maxPrice: maxPrice ? parseFloat(maxPrice) : undefined,
+      });
+
+      let productsList = productsRes.content || [];
+
+      // Client-side sorting
+      if (sortBy === 'price-asc') {
+        productsList.sort((a: Product, b: Product) => a.price - b.price);
+      } else if (sortBy === 'price-desc') {
+        productsList.sort((a: Product, b: Product) => b.price - a.price);
+      } else if (sortBy === 'name') {
+        productsList.sort((a: Product, b: Product) => a.name.localeCompare(b.name));
+      }
+
+      setProducts(productsList);
     } catch (err) {
       console.error('Failed to load data:', err);
     } finally {
@@ -57,182 +133,149 @@ export default function ProductsPage() {
     }
   };
 
-  const handleAddToCart = async (productId: number) => {
+  const handleAddToCart = async (productId: number, productName: string) => {
     try {
       await cartApi.addItem(productId, 1);
-      alert('Added to cart!');
+      incrementCartCount();
+      toast.success(`${productName} added to cart!`);
     } catch (err: any) {
-      alert(err.response?.data?.message || 'Failed to add to cart');
+      if (err.response?.status === 401) {
+        toast.error('Please login to add items to cart');
+        router.push('/login');
+      } else {
+        toast.error('Failed to add to cart');
+      }
     }
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem('token');
-    router.push('/login');
+  const clearFilters = () => {
+    setCategoryFilter(null);
+    setBrandFilter(null);
+    setMinPrice('');
+    setMaxPrice('');
+    setSortBy('name');
   };
 
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    setUploading(true);
-    try {
-      const { url } = await fileApi.uploadImage(file);
-      setUploadedUrl(url);
-      alert('Image uploaded. Use this URL as imageUrl when creating/updating products: ' + url);
-    } catch (err: any) {
-      alert(err.response?.data?.message || 'Failed to upload image');
-    } finally {
-      setUploading(false);
-    }
-  };
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-white p-8">
-        <p className="text-black">Loading...</p>
-      </div>
-    );
-  }
+  const activeFiltersCount = [categoryFilter, brandFilter, minPrice, maxPrice].filter(Boolean).length;
 
   return (
-    <div className="min-h-screen bg-white">
-      <header className="border-b border-black p-4">
-        <div className="container mx-auto flex items-center justify-between">
-          <h1 className="text-2xl font-bold text-black">Shopifyr</h1>
-          <div className="flex gap-4">
-            <button
-              onClick={() => router.push('/cart')}
-              className="border border-black bg-white px-4 py-2 text-black hover:bg-black hover:text-white"
-            >
-              Cart
-            </button>
-            <button
-              onClick={handleLogout}
-              className="border border-black bg-black px-4 py-2 text-white hover:bg-gray-800"
-            >
-              Logout
-            </button>
-          </div>
-        </div>
-      </header>
-
-      <main className="container mx-auto p-8">
-        <div className="mb-6 border border-black p-4">
-          <h2 className="mb-2 text-xl font-bold text-black">Upload Product Image (Demo)</h2>
-          <p className="mb-2 text-sm text-black">
-            Upload an image to the backend. The returned URL can be used as <code>imageUrl</code> in the admin/product APIs.
-          </p>
-          <div className="flex items-center gap-4">
-            <input
-              type="file"
-              accept="image/*"
-              onChange={handleFileChange}
-              className="text-black"
-            />
-            {uploading && <span className="text-sm text-black">Uploading...</span>}
-          </div>
-          {uploadedUrl && (
-            <div className="mt-3 flex items-center gap-4">
-              <div className="text-xs text-black break-all">
-                URL: <span>{uploadedUrl}</span>
-              </div>
-              <img
-                src={`http://localhost:8080${uploadedUrl}`}
-                alt="Uploaded"
-                className="h-16 w-16 border border-black object-cover"
-              />
-            </div>
-          )}
-        </div>
-        <div className="mb-6 border border-black p-4">
-          <h2 className="mb-4 text-xl font-bold text-black">Filters</h2>
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
-            <div>
-              <label className="block text-sm font-medium text-black mb-1">Category</label>
+    <div className="min-h-screen bg-gray-50">
+      {/* Compact Filter Bar */}
+      <div className="bg-white border-b border-gray-200 sticky top-24 z-40">
+        <div className="container mx-auto px-4 py-3">
+          <div className="flex items-center justify-between gap-4 flex-wrap">
+            {/* Filters */}
+            <div className="flex items-center gap-3 flex-wrap flex-1">
+              {/* Category */}
               <select
                 value={categoryFilter || ''}
                 onChange={(e) => setCategoryFilter(e.target.value ? parseInt(e.target.value) : null)}
-                className="w-full border border-black p-2 text-black"
+                className="px-3 py-1.5 text-sm border border-gray-300 rounded hover:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500"
               >
-                <option value="">All</option>
+                <option value="">All Categories</option>
                 {categories.map((cat) => (
                   <option key={cat.id} value={cat.id}>
                     {cat.name}
                   </option>
                 ))}
               </select>
-            </div>
 
-            <div>
-              <label className="block text-sm font-medium text-black mb-1">Brand</label>
+              {/* Brand */}
               <select
                 value={brandFilter || ''}
                 onChange={(e) => setBrandFilter(e.target.value ? parseInt(e.target.value) : null)}
-                className="w-full border border-black p-2 text-black"
+                className="px-3 py-1.5 text-sm border border-gray-300 rounded hover:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500"
               >
-                <option value="">All</option>
+                <option value="">All Brands</option>
                 {brands.map((brand) => (
                   <option key={brand.id} value={brand.id}>
                     {brand.name}
                   </option>
                 ))}
               </select>
-            </div>
 
-            <div>
-              <label className="block text-sm font-medium text-black mb-1">Min Price</label>
+              {/* Price Range */}
               <input
                 type="number"
                 value={minPrice}
                 onChange={(e) => setMinPrice(e.target.value)}
-                placeholder="0"
-                className="w-full border border-black p-2 text-black"
+                placeholder="Min Price"
+                className="w-24 px-3 py-1.5 text-sm border border-gray-300 rounded hover:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500"
               />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-black mb-1">Max Price</label>
+              <span className="text-gray-400">-</span>
               <input
                 type="number"
                 value={maxPrice}
                 onChange={(e) => setMaxPrice(e.target.value)}
-                placeholder="10000"
-                className="w-full border border-black p-2 text-black"
+                placeholder="Max Price"
+                className="w-24 px-3 py-1.5 text-sm border border-gray-300 rounded hover:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500"
               />
+
+              {activeFiltersCount > 0 && (
+                <button
+                  onClick={clearFilters}
+                  className="text-sm text-orange-600 hover:text-orange-700 font-semibold"
+                >
+                  Clear ({activeFiltersCount})
+                </button>
+              )}
+            </div>
+
+            {/* Sort and Results */}
+            <div className="flex items-center gap-4">
+              <span className="text-sm text-gray-600">
+                {loading ? 'Loading...' : `${products.length} results`}
+              </span>
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+                className="px-3 py-1.5 text-sm border border-gray-300 rounded hover:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500"
+              >
+                <option value="name">Name (A-Z)</option>
+                <option value="price-asc">Price: Low to High</option>
+                <option value="price-desc">Price: High to Low</option>
+              </select>
             </div>
           </div>
         </div>
+      </div>
 
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-          {products.length === 0 ? (
-            <p className="col-span-full text-center text-black">No products found</p>
-          ) : (
-            products.map((product) => (
-              <div key={product.id} className="border border-black p-4">
-                <h3 className="text-lg font-bold text-black mb-2">{product.name}</h3>
-                <p className="text-sm text-black mb-2">{product.description}</p>
-                <p className="text-lg font-bold text-black mb-2">${product.price.toFixed(2)}</p>
-                <p className="text-xs text-black mb-4">
-                  {product.categoryName} {product.brandName && `• ${product.brandName}`}
-                </p>
-                {product.isActive ? (
-                  <button
-                    onClick={() => handleAddToCart(product.id)}
-                    className="w-full border border-black bg-black px-4 py-2 text-white hover:bg-gray-800"
-                  >
-                    Add to Cart
-                  </button>
-                ) : (
-                  <button disabled className="w-full border border-gray-400 bg-gray-200 px-4 py-2 text-gray-500">
-                    Out of Stock
-                  </button>
-                )}
+      {/* Products Grid - 6 COLUMNS */}
+      <div className="container mx-auto px-4 py-6">
+        {loading ? (
+          <div className="grid-6-cols">
+            {[...Array(18)].map((_, i) => (
+              <div key={i} className="animate-pulse">
+                <div className="aspect-square bg-gray-200 rounded-lg mb-2" />
+                <div className="h-4 bg-gray-200 rounded mb-2" />
+                <div className="h-4 bg-gray-200 rounded w-2/3" />
               </div>
-            ))
-          )}
-        </div>
-      </main>
+            ))}
+          </div>
+        ) : products.length === 0 ? (
+          <div className="text-center py-20">
+            <div className="text-6xl mb-4">📦</div>
+            <h3 className="text-2xl font-bold text-gray-900 mb-2">No products found</h3>
+            <p className="text-gray-600 mb-6">Try adjusting your filters</p>
+            <button
+              onClick={clearFilters}
+              className="px-6 py-2 bg-orange-500 text-white font-semibold rounded hover:bg-orange-600"
+            >
+              Clear Filters
+            </button>
+          </div>
+        ) : (
+          <div className="grid-6-cols">
+            {products.map((product) => (
+              <ProductCard
+                key={product.id}
+                product={product}
+                onAddToCart={(id) => handleAddToCart(id, product.name)}
+              />
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
