@@ -1,0 +1,50 @@
+services:
+  db:
+    image: postgres:18
+    container_name: shopifyr-db
+    environment:
+      POSTGRES_DB: shopifyr
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - db-data:/var/lib/postgresql/data
+
+  backend:
+    build:
+      context: ./backend
+    container_name: shopifyr-backend
+    depends_on:
+      - db
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      DB_URL: jdbc:postgresql://db:5432/shopifyr
+      DB_USERNAME: postgres
+      DB_PASSWORD: postgres
+      APP_JWT_SECRET: change-me-dev-secret
+      APP_MAIL_USER: dummy
+      APP_MAIL_PASSWORD: dummy
+      APP_MAIL_FROM: no-reply@example.com
+      APP_MAIL_ORDER_NOTIFY_TO: owner@example.com
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./backend/uploads:/app/uploads
+
+  frontend:
+    build:
+      context: ./frontend
+    container_name: shopifyr-frontend
+    depends_on:
+      - backend
+    environment:
+      # Frontend still talks to localhost:8080 from the browser's perspective
+      # (mapped to the backend container by Docker)
+      NEXT_PUBLIC_API_BASE_URL: http://localhost:8080/api
+    ports:
+      - "3000:3000"
+
+volumes:
+  db-data:
+
