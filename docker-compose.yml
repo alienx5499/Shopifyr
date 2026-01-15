@@ -3,11 +3,11 @@ services:
     image: postgres:18
     container_name: shopifyr-db
     environment:
-      POSTGRES_DB: shopifyr
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: ${POSTGRES_DB:-shopifyr}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
     ports:
-      - "5432:5432"
+      - "${POSTGRES_PORT:-5432}:5432"
     volumes:
       - db-data:/var/lib/postgresql/data
 
@@ -19,14 +19,14 @@ services:
       - db
     environment:
       SPRING_PROFILES_ACTIVE: prod
-      DB_URL: jdbc:postgresql://db:5432/shopifyr
-      DB_USERNAME: postgres
-      DB_PASSWORD: postgres
-      APP_JWT_SECRET: change-me-dev-secret
-      APP_MAIL_USER: dummy
-      APP_MAIL_PASSWORD: dummy
-      APP_MAIL_FROM: no-reply@example.com
-      APP_MAIL_ORDER_NOTIFY_TO: owner@example.com
+      DB_URL: ${DB_URL:-jdbc:postgresql://db:5432/shopifyr}
+      DB_USERNAME: ${DB_USERNAME:-postgres}
+      DB_PASSWORD: ${DB_PASSWORD:-postgres}
+      APP_JWT_SECRET: ${APP_JWT_SECRET:-change-me-dev-secret}
+      APP_MAIL_USER: ${APP_MAIL_USER:-dummy}
+      APP_MAIL_PASSWORD: ${APP_MAIL_PASSWORD:-dummy}
+      APP_MAIL_FROM: ${APP_MAIL_FROM:-no-reply@example.com}
+      APP_MAIL_ORDER_NOTIFY_TO: ${APP_MAIL_ORDER_NOTIFY_TO:-owner@example.com}
     ports:
       - "8080:8080"
     volumes:
