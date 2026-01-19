@@ -3,284 +3,247 @@
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { motion } from 'framer-motion';
-import toast from 'react-hot-toast';
+import { motion, AnimatePresence } from 'framer-motion';
 import { ProductCard } from '@/components/features/ProductCard';
 import { productApi, cartApi } from '@/lib/api';
 import { useCart } from '@/contexts/CartContext';
-
-interface Product {
-  id: number;
-  name: string;
-  description: string;
-  price: number;
-  imageUrl?: string;
-  categoryName: string;
-  brandName?: string;
-  isActive: boolean;
-}
-
-const heroSlides = [
-  {
-    image: '/assets/images/banners/electronics.png',
-    title: 'Latest Electronics',
-    subtitle: 'Up to 50% Off on Premium Gadgets',
-    link: '/products?category=Electronics',
-    bg: 'from-slate-900 to-slate-800'
-  },
-  {
-    image: '/assets/images/banners/fashion.png',
-    title: 'Trending Fashion',
-    subtitle: 'New Arrivals - Fresh Styles',
-    link: '/products?category=Fashion',
-    bg: 'from-slate-800 to-gray-900'
-  }
-];
+import toast from 'react-hot-toast';
 
 export default function HomePage() {
   const router = useRouter();
   const { incrementCartCount } = useCart();
-  const [featuredProducts, setFeaturedProducts] = useState<Product[]>([]);
+  const [featuredProducts, setFeaturedProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [currentSlide, setCurrentSlide] = useState(0);
 
   useEffect(() => {
     loadFeaturedProducts();
-
-    const interval = setInterval(() => {
-      setCurrentSlide((prev) => (prev + 1) % heroSlides.length);
-    }, 5000);
-
-    return () => clearInterval(interval);
   }, []);
 
   const loadFeaturedProducts = async () => {
     try {
-      const response = await productApi.getAll({ page: 0, size: 18 });
+      const response = await productApi.getAll({ page: 0, size: 12 });
       setFeaturedProducts(response.content || []);
-    } catch (error) {
-      console.error('Failed to load products:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleAddToCart = async (productId: number, productName: string) => {
-    try {
-      await cartApi.addItem(productId, 1);
-      incrementCartCount();
-      toast.success(`${productName} added to cart!`);
-    } catch (error: any) {
-      if (error.response?.status === 401) {
-        toast.error('Please login to add items to cart');
-        router.push('/login');
-      } else {
-        toast.error('Failed to add to cart');
-      }
-    }
+    } catch (error) { console.error(error); }
+    finally { setLoading(false); }
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* HERO BANNER - Prominent */}
-      <section className="relative h-[500px] overflow-hidden">
-        {heroSlides.map((slide, index) => (
-          <div
-            key={index}
-            className={`absolute inset-0 transition-opacity duration-1000 ${currentSlide === index ? 'opacity-100' : 'opacity-0'
-              }`}
-          >
-            {/* Background Gradient */}
-            <div className={`absolute inset-0 bg-gradient-to-r ${slide.bg}`} />
+    <div className="min-h-screen bg-white text-black font-sans selection:bg-black selection:text-white">
+      {/* 01. HERO CAROUSEL */}
+      <section className="relative h-[80vh] w-full overflow-hidden bg-neutral-900 text-white">
+        <HeroSlider />
+      </section>
 
-            {/* Image Overlay */}
-            <div className="absolute inset-0 opacity-40">
-              <img
-                src={slide.image}
-                alt={slide.title}
-                className="w-full h-full object-cover mix-blend-overlay"
-              />
+      {/* 02. SPLIT LAYOUT: CATEGORIES & DEAL */}
+      <section className="py-24 px-8 lg:px-16 max-w-[1800px] mx-auto">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 h-full">
+
+          {/* LEFT: 2x2 CATEGORY GRID */}
+          <div>
+            <div className="flex justify-between items-end mb-8">
+              <h2 className="text-xs font-black uppercase tracking-[0.4em]">01 // Sector Index</h2>
+              <span className="text-[10px] text-neutral-300 font-bold uppercase tracking-widest">Select Sector</span>
             </div>
 
-            {/* Content */}
-            <div className="absolute inset-0 flex items-center">
-              <div className="container mx-auto px-4">
-                <div className="max-w-3xl">
-                  <motion.h1
-                    initial={{ opacity: 0, y: 30 }}
-                    animate={{ opacity: currentSlide === index ? 1 : 0, y: currentSlide === index ? 0 : 30 }}
-                    transition={{ duration: 0.8, ease: "circOut" }}
-                    className="text-6xl md:text-7xl font-bold mb-6 text-white tracking-tight leading-tight"
-                  >
-                    {slide.title}
-                  </motion.h1>
-                  <motion.p
-                    initial={{ opacity: 0, y: 30 }}
-                    animate={{ opacity: currentSlide === index ? 1 : 0, y: currentSlide === index ? 0 : 30 }}
-                    transition={{ duration: 0.8, delay: 0.2, ease: "circOut" }}
-                    className="text-2xl md:text-3xl mb-10 text-gray-200 font-light"
-                  >
-                    {slide.subtitle}
-                  </motion.p>
-                  <motion.div
-                    initial={{ opacity: 0, y: 30 }}
-                    animate={{ opacity: currentSlide === index ? 1 : 0, y: currentSlide === index ? 0 : 30 }}
-                    transition={{ duration: 0.8, delay: 0.4, ease: "circOut" }}
-                  >
-                    <Link href={slide.link}>
-                      <button className="px-10 py-4 bg-orange-500 text-white font-bold text-lg rounded-xl hover:bg-orange-600 transition-all shadow-lg shadow-orange-500/30 transform hover:-translate-y-1">
-                        Shop Now
-                      </button>
-                    </Link>
-                  </motion.div>
+            <div className="grid grid-cols-2 gap-4">
+              {[
+                { name: 'Electronics', ref: 'SEC-01', image: '/assets/images/categories/electronics.png' },
+                { name: 'Fashion', ref: 'SEC-02', image: '/assets/images/categories/fashion.png' },
+                { name: 'Books', ref: 'SEC-03', image: '/assets/images/categories/books.png' },
+                { name: 'Shoes', ref: 'SEC-04', image: '/assets/images/products/nike_air_max.png' }
+              ].map((cat) => (
+                <Link key={cat.name} href={`/products?category=${cat.name}`} className="group relative bg-white aspect-square overflow-hidden hover:z-10 hover:shadow-2xl transition-all duration-500 block rounded-sm">
+                  <div className="absolute inset-0">
+                    <img src={cat.image} alt="" className="w-full h-full object-cover transition-all duration-700 group-hover:scale-105" />
+                    <div className="absolute inset-0 bg-black/10 group-hover:bg-transparent transition-colors" />
+                  </div>
+                  <div className="absolute inset-0 p-6 flex flex-col justify-end bg-gradient-to-t from-black/80 to-transparent">
+                    <span className="text-[8px] font-black text-white/70 tracking-widest uppercase mb-1">{cat.ref}</span>
+                    <div className="flex justify-between items-end">
+                      <h3 className="text-lg font-black uppercase tracking-tighter text-white">{cat.name}</h3>
+                      <div className="text-white opacity-0 group-hover:opacity-100 transition-opacity transform translate-x-2 group-hover:translate-x-0">&rarr;</div>
+                    </div>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </div>
+
+          {/* RIGHT: TODAY'S DEAL */}
+          <div className="flex flex-col h-full">
+            <div className="flex justify-between items-end mb-8">
+              <h2 className="text-xs font-black uppercase tracking-[0.4em]">02 // Today's Deal</h2>
+              <span className="text-[10px] text-emerald-500 font-bold uppercase tracking-widest animate-pulse">Live Offer</span>
+            </div>
+
+            <div className="relative flex-1 bg-neutral-900 overflow-hidden group min-h-[500px] rounded-sm">
+              <div className="absolute inset-0">
+                <img src="/assets/images/products/product_headphones_1768419474302.png" alt="Deal" className="w-full h-full object-contain p-12 transition-transform duration-700 group-hover:scale-105" />
+              </div>
+              <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent flex flex-col justify-end p-12">
+                <span className="bg-red-600 text-white text-[10px] font-bold uppercase tracking-widest px-3 py-1 w-fit mb-4">-40% OFF</span>
+                <h3 className="text-4xl lg:text-5xl font-black uppercase text-white tracking-tighter mb-2">Aurum // Elite</h3>
+                <p className="text-neutral-400 text-sm font-medium mb-8 max-w-sm">High-fidelity noise cancellation with adaptive audio engineering. Limited time offer for the modern audiophile.</p>
+                <div className="flex items-center gap-6">
+                  <div>
+                    <span className="block text-sm text-neutral-500 line-through font-bold">$499.00</span>
+                    <span className="block text-3xl text-white font-black">$299.00</span>
+                  </div>
+                  <button onClick={() => toast('Deal Claimed!')} className="bg-white text-black px-8 py-4 text-xs font-black uppercase tracking-[0.2em] hover:bg-neutral-200 transition-colors">
+                    Claim Offer
+                  </button>
                 </div>
               </div>
             </div>
           </div>
-        ))}
 
-        {/* Slide Indicators */}
-        <div className="absolute bottom-10 left-12 z-30 flex space-x-3">
-          {heroSlides.map((_, index) => (
-            <button
-              key={index}
-              onClick={() => setCurrentSlide(index)}
-              className={`h-2 rounded-full transition-all duration-500 ${currentSlide === index ? 'bg-orange-500 w-16' : 'bg-white/30 w-10 hover:bg-white/50'
-                }`}
-            />
+        </div>
+      </section>
+
+      {/* 03. FEATURED INVENTORY */}
+      <section className="py-24 px-8 lg:px-16 max-w-[1800px] mx-auto bg-neutral-50/50">
+        <div className="flex justify-between items-baseline mb-16">
+          <h2 className="text-xs font-black uppercase tracking-[0.4em]">03 // Featured Inventory</h2>
+          <Link href="/products" className="text-[10px] font-black uppercase tracking-[0.2em] border-b border-black pb-1 hover:text-neutral-500 transition-colors">Browse Full Catalog</Link>
+        </div>
+
+        {loading ? (
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-x-8 gap-y-16">
+            {[...Array(12)].map((_, i) => <div key={i} className="aspect-[3/4] bg-neutral-100 animate-pulse" />)}
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-x-8 gap-y-20">
+            {featuredProducts.map((product) => (
+              <ProductCard
+                key={product.id}
+                product={product}
+                onAddToCart={(id) => {
+                  cartApi.addItem(id, 1).then(() => {
+                    incrementCartCount();
+                    toast.success('Archived to cart');
+                  });
+                }}
+              />
+            ))}
+          </div>
+        )}
+      </section>
+
+      {/* 04. TECHNICAL SPECS FOOTER */}
+      <footer className="py-16 px-8 lg:px-16 border-t border-neutral-100 bg-black text-white">
+        <div className="max-w-[1800px] mx-auto grid grid-cols-2 md:grid-cols-4 gap-12 opacity-80">
+          {[
+            { label: 'Logistics', val: 'Global Tier 01' },
+            { label: 'Security', val: '256-Bit SSL' },
+            { label: 'Sourcing', val: 'Verified Authentic' },
+            { label: 'Archive ID', val: 'REF-2026-X' }
+          ].map((item, i) => (
+            <div key={i} className="space-y-2">
+              <span className="text-[8px] font-black uppercase tracking-[0.4em] text-neutral-500">{item.label}</span>
+              <p className="text-[10px] font-bold uppercase tracking-widest">{item.val}</p>
+            </div>
           ))}
         </div>
-      </section>
-
-      {/* Shop by Category - COMPACT */}
-      <section className="py-12 bg-white border-b border-gray-100">
-        <div className="container mx-auto px-4">
-          <div className="flex items-center justify-between mb-8">
-            <h2 className="text-2xl font-bold text-gray-900">Shop by Category</h2>
-            <Link href="/products" className="text-orange-600 hover:text-orange-700 font-medium text-sm">View all categories →</Link>
-          </div>
-
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-6">
-            {[
-              { name: 'Electronics', image: '/assets/images/categories/electronics.png', link: '/products?category=Electronics' },
-              { name: 'Fashion', image: '/assets/images/categories/fashion.png', link: '/products?category=Fashion' },
-              { name: 'Books', image: '/assets/images/categories/books.png', link: '/products?category=Books' },
-              { name: 'Home & Kitchen', image: '/assets/images/products/product_headphones_1768419474302.png', link: '/products?category=Home' },
-              { name: 'Sports', image: '/assets/images/products/nike_air_max.png', link: '/products?category=Sports' },
-              { name: 'Beauty', image: 'https://images.unsplash.com/photo-1596462502278-27bfdd403348?w=500&q=80', link: '/products?category=Beauty' },
-              { name: 'Toys & Games', image: '/assets/images/products/ipad_air.png', link: '/products?category=Toys' },
-              { name: 'Health & Wellness', image: 'https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=500&q=80', link: '/products?category=Health' },
-              { name: 'Pet Supplies', image: 'https://images.unsplash.com/photo-1583337130417-3346a1be7dee?w=500&q=80', link: '/products?category=Pets' },
-              { name: 'Office Supplies', image: '/assets/images/products/dell_xps_13.png', link: '/products?category=Office' },
-              { name: 'Jewelry', image: '/assets/images/products/product_watch_1768419490305.png', link: '/products?category=Jewelry' }
-            ].map((category) => (
-              <Link key={category.name} href={category.link}>
-                <div className="group bg-white rounded-lg border border-gray-200 hover:shadow-md transition-all overflow-hidden cursor-pointer">
-                  <div className="relative h-24 overflow-hidden bg-gradient-to-br from-gray-50 to-gray-100">
-                    <img
-                      src={category.image}
-                      alt={category.name}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                    />
-                  </div>
-                  <div className="p-2 text-center">
-                    <h3 className="text-xs font-semibold text-gray-900">{category.name}</h3>
-                  </div>
-                </div>
-              </Link>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Today's Deals - COMPACT */}
-      <section className="py-6 bg-gray-50">
-        <div className="container mx-auto px-4">
-          <h2 className="text-xl font-bold text-gray-900 mb-4">Today's Deals</h2>
-
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            {[
-              { title: 'Electronics Sale', subtitle: 'Up to 50% off', image: '/assets/images/products/product_laptop_1768419458778.png', link: '/products?category=Electronics' },
-              { title: 'Fashion Trends', subtitle: 'New arrivals', image: '/assets/images/products/product_sneakers_1768419507142.png', link: '/products?category=Fashion' },
-              { title: 'Book Bonanza', subtitle: 'Best sellers', image: '/assets/images/categories/books.png', link: '/products?category=Books' },
-              { title: 'Home Essentials', subtitle: 'Must-haves', image: '/assets/images/products/product_headphones_1768419474302.png', link: '/products?category=Home' }
-            ].map((deal, index) => (
-              <Link key={index} href={deal.link}>
-                <div className="group bg-white rounded-lg border border-gray-200 hover:shadow-md transition-all overflow-hidden">
-                  <div className="relative h-32 overflow-hidden bg-gradient-to-br from-orange-50 to-pink-50">
-                    <img
-                      src={deal.image}
-                      alt={deal.title}
-                      className="w-full h-full object-contain p-2 group-hover:scale-105 transition-transform"
-                    />
-                  </div>
-                  <div className="p-3">
-                    <h3 className="text-sm font-bold text-gray-900 mb-1">{deal.title}</h3>
-                    <p className="text-xs text-orange-600">{deal.subtitle}</p>
-                  </div>
-                </div>
-              </Link>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Featured Products - 6 COLUMNS */}
-      <section className="py-6 bg-white">
-        <div className="container mx-auto px-4">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-bold text-gray-900">Featured Products</h2>
-            <Link href="/products" className="text-orange-500 hover:text-orange-600 font-semibold text-sm flex items-center">
-              View All
-              <svg className="w-4 h-4 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-              </svg>
-            </Link>
-          </div>
-
-          {loading ? (
-            <div className="grid-6-cols">
-              {[...Array(18)].map((_, i) => (
-                <div key={i} className="animate-pulse">
-                  <div className="aspect-square bg-gray-200 rounded-lg mb-2" />
-                  <div className="h-4 bg-gray-200 rounded mb-2" />
-                  <div className="h-4 bg-gray-200 rounded w-2/3" />
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="grid-6-cols">
-              {featuredProducts.map((product) => (
-                <ProductCard
-                  key={product.id}
-                  product={product}
-                  onAddToCart={(id) => handleAddToCart(id, product.name)}
-                />
-              ))}
-            </div>
-          )}
-        </div>
-      </section>
-
-      {/* Features - COMPACT */}
-      <section className="py-4 bg-gray-100 border-t border-gray-200">
-        <div className="container mx-auto px-4">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
-            {[
-              { icon: '🚚', title: 'Free Shipping', desc: 'Orders $50+' },
-              { icon: '✓', title: 'Authentic', desc: '100% Genuine' },
-              { icon: '↩', title: 'Easy Returns', desc: '30 days' },
-              { icon: '🔒', title: 'Secure', desc: 'Safe payment' }
-            ].map((feature, index) => (
-              <div key={index} className="p-3">
-                <div className="text-2xl mb-1">{feature.icon}</div>
-                <h3 className="text-xs font-bold text-gray-900">{feature.title}</h3>
-                <p className="text-xs text-gray-600">{feature.desc}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
+      </footer>
     </div>
   );
 }
+
+const HeroSlider = () => {
+  const [current, setCurrent] = useState(0);
+  const slides = [
+    {
+      id: 1,
+      title: "System.01 // Audio",
+      subtitle: "High-Fidelity Engineering",
+      img: "/assets/images/products/product_headphones_1768419474302.png",
+      bg: "bg-neutral-900"
+    },
+    {
+      id: 2,
+      title: "System.02 // Optics",
+      subtitle: "Visual Precision",
+      img: "/assets/images/products/product_laptop_1768419458778.png",
+      bg: "bg-neutral-800"
+    },
+    {
+      id: 3,
+      title: "System.03 // Chrono",
+      subtitle: "Time Dilation",
+      img: "/assets/images/products/product_watch_1768419490305.png",
+      bg: "bg-stone-900"
+    }
+  ];
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrent((prev) => (prev + 1) % slides.length);
+    }, 4000);
+    return () => clearInterval(timer);
+  }, []);
+
+  return (
+    <div className="relative w-full h-full">
+      <AnimatePresence mode='wait'>
+        <motion.div
+          key={current}
+          initial={{ opacity: 0, scale: 1.05 }}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.7 }}
+          className={`absolute inset-0 ${slides[current].bg}`}
+        >
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+            <span className="text-[20vw] font-black text-white/5 tracking-tighter select-none truncate">
+              {slides[current].subtitle}
+            </span>
+          </div>
+
+          <div className="relative z-10 h-full w-full max-w-[1800px] mx-auto px-8 lg:px-16 flex items-center">
+            <div className="grid grid-cols-1 md:grid-cols-2 w-full items-center gap-12">
+              <div className="space-y-6">
+                <motion.span
+                  initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}
+                  className="text-xs font-black text-emerald-500 uppercase tracking-[0.4em] block"
+                >
+                  New Archive Entry
+                </motion.span>
+                <motion.h2
+                  initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}
+                  className="text-5xl lg:text-8xl font-black text-white uppercase tracking-tighter leading-[0.8]"
+                >
+                  {slides[current].title}
+                </motion.h2>
+                <motion.p
+                  initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }}
+                  className="text-white/60 font-bold uppercase tracking-widest text-sm max-w-md"
+                >
+                  {slides[current].subtitle}. Verified functionality for the modern pioneer.
+                </motion.p>
+              </div>
+
+              <motion.div
+                initial={{ opacity: 0, scale: 0.8, rotate: -5 }}
+                animate={{ opacity: 1, scale: 1, rotate: 0 }}
+                transition={{ delay: 0.6, duration: 0.8 }}
+                className="relative aspect-square max-h-[60vh] hidden md:block"
+              >
+                <img src={slides[current].img} alt="" className="w-full h-full object-contain drop-shadow-2xl" />
+              </motion.div>
+            </div>
+          </div>
+        </motion.div>
+      </AnimatePresence>
+
+      <div className="absolute bottom-12 left-8 lg:left-16 flex gap-2 z-20">
+        {slides.map((_, i) => (
+          <button
+            key={i}
+            onClick={() => setCurrent(i)}
+            className={`h-1 transition-all ${current === i ? 'w-12 bg-emerald-500' : 'w-4 bg-white/20'}`}
+          />
+        ))}
+      </div>
+    </div>
+  );
+};

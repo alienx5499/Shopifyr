@@ -10,7 +10,6 @@ interface Product {
     price: number;
     imageUrl?: string;
     categoryName: string;
-    brandName?: string;
     isActive: boolean;
 }
 
@@ -20,63 +19,45 @@ interface ProductCardProps {
 }
 
 export const ProductCard: React.FC<ProductCardProps> = ({ product, onAddToCart }) => {
-    const handleAddToCart = (e: React.MouseEvent) => {
-        e.preventDefault();
-        if (onAddToCart) {
-            onAddToCart(product.id);
-        }
-    };
-
     return (
-        <Link href={`/products/${product.id}`}>
-            <div className="bg-white rounded-lg border border-gray-200 hover:border-orange-300 hover:shadow-xl transition-all duration-300 overflow-hidden group h-full flex flex-col">
-                {/* Image - Compact */}
-                <div className="relative aspect-square bg-gradient-to-br from-gray-50 to-gray-100 overflow-hidden">
+        <div className="group block w-full cursor-pointer h-full flex flex-col">
+            <Link href={`/products/${product.id}`} className="flex flex-col h-full">
+                <div className="relative aspect-[4/5] bg-[#FDFDFD] border border-neutral-50 overflow-hidden mb-4 transition-colors group-hover:bg-neutral-50">
                     {product.imageUrl ? (
                         <img
                             src={product.imageUrl}
                             alt={product.name}
-                            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                            className="w-full h-full object-contain p-8 transition-all duration-1000 group-hover:scale-105"
                         />
                     ) : (
-                        <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-100 to-gray-200">
-                            <svg className="w-16 h-16 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
-                            </svg>
+                        <div className="w-full h-full flex items-center justify-center text-xs text-neutral-300 font-bold uppercase tracking-widest">
+                            No Visual Data
                         </div>
                     )}
-                    {!product.isActive && (
-                        <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
-                            <span className="bg-red-500 text-white text-xs px-2 py-1 rounded">Out of Stock</span>
-                        </div>
-                    )}
+
+                    {/* Minimalist Floating Add */}
+                    <button
+                        onClick={(e) => {
+                            e.preventDefault();
+                            onAddToCart?.(product.id);
+                        }}
+                        className="absolute bottom-4 right-4 bg-black text-white w-10 h-10 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 hover:scale-110 shadow-lg z-20"
+                        title="Add to Cart"
+                    >
+                        <span className="text-xl font-light mb-0.5">+</span>
+                    </button>
                 </div>
 
-                {/* Content - Compact */}
-                <div className="p-3 flex-1 flex flex-col">
-                    {/* Name */}
-                    <h3 className="text-sm font-semibold text-gray-900 mb-1 line-clamp-2 group-hover:text-orange-600 transition-colors">
+                <div className="space-y-2 flex-grow">
+                    <div className="flex justify-between items-start gap-4">
+                        <span className="text-[9px] font-black text-neutral-400 uppercase tracking-widest leading-none mt-0.5">{product.categoryName || 'ARCHIVE'}</span>
+                        <span className="text-sm font-black tracking-tighter leading-none">${product.price.toLocaleString()}</span>
+                    </div>
+                    <h3 className="text-xs font-bold uppercase tracking-wide text-black line-clamp-2 min-h-[2.5em] group-hover:text-neutral-500 transition-colors">
                         {product.name}
                     </h3>
-
-                    {/* Price */}
-                    <div className="mt-auto">
-                        <span className="text-lg font-bold text-gray-900">
-                            ${product.price.toFixed(2)}
-                        </span>
-                    </div>
-
-                    {/* Add to Cart Button - Compact */}
-                    {product.isActive && onAddToCart && (
-                        <button
-                            onClick={handleAddToCart}
-                            className="mt-2 w-full py-2 bg-orange-500 text-white text-xs font-bold rounded-md hover:bg-orange-600 active:scale-95 transition-all shadow-sm hover:shadow-md"
-                        >
-                            Add to Cart
-                        </button>
-                    )}
                 </div>
-            </div>
-        </Link>
+            </Link>
+        </div>
     );
 };

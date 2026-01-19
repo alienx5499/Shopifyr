@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { productApi, categoryApi, brandApi, cartApi } from '@/lib/api';
 import { ProductCard } from '@/components/features/ProductCard';
@@ -18,7 +18,9 @@ interface Product {
   isActive: boolean;
 }
 
-export default function ProductsPage() {
+export const dynamic = 'force-dynamic';
+
+function ProductsContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { incrementCartCount } = useCart();
@@ -139,7 +141,7 @@ export default function ProductsPage() {
       incrementCartCount();
       toast.success(`${productName} added to cart!`);
     } catch (err: any) {
-      if (err.response?.status === 401) {
+      if (err.response?.status === 401 || err.response?.status === 403) {
         toast.error('Please login to add items to cart');
         router.push('/login');
       } else {
@@ -240,42 +242,57 @@ export default function ProductsPage() {
         </div>
       </div>
 
-      {/* Products Grid - 6 COLUMNS */}
-      <div className="container mx-auto px-4 py-6">
+      {/* Products Grid - Compact Layout */}
+      <div className="container mx-auto px-6 lg:px-12 py-8">
         {loading ? (
-          <div className="grid-6-cols">
-            {[...Array(18)].map((_, i) => (
-              <div key={i} className="animate-pulse">
-                <div className="aspect-square bg-gray-200 rounded-lg mb-2" />
-                <div className="h-4 bg-gray-200 rounded mb-2" />
-                <div className="h-4 bg-gray-200 rounded w-2/3" />
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-6">
+            {[...Array(10)].map((_, i) => (
+              <div key={i} className="animate-pulse space-y-3">
+                <div className="aspect-[3/4] bg-gray-200 rounded-xl" />
+                <div className="h-3 bg-gray-200 rounded w-2/3" />
+                <div className="h-3 bg-gray-200 rounded w-1/3" />
               </div>
             ))}
           </div>
         ) : products.length === 0 ? (
-          <div className="text-center py-20">
-            <div className="text-6xl mb-4">📦</div>
-            <h3 className="text-2xl font-bold text-gray-900 mb-2">No products found</h3>
-            <p className="text-gray-600 mb-6">Try adjusting your filters</p>
+          <div className="min-h-[50vh] flex flex-col items-center justify-center text-center">
+            <h3 className="text-2xl font-bold mb-3">No products found</h3>
+            <p className="text-gray-500 mb-6 text-sm">Try adjusting your filters.</p>
             <button
               onClick={clearFilters}
-              className="px-6 py-2 bg-orange-500 text-white font-semibold rounded hover:bg-orange-600"
+              className="px-6 py-2 bg-black text-white rounded-full text-sm font-bold hover:bg-gray-800 transition-colors"
             >
               Clear Filters
             </button>
           </div>
         ) : (
-          <div className="grid-6-cols">
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-6">
             {products.map((product) => (
-              <ProductCard
+              <div
                 key={product.id}
-                product={product}
-                onAddToCart={(id) => handleAddToCart(id, product.name)}
-              />
+                className="col-span-1"
+              >
+                <ProductCard
+                  product={product}
+                  onAddToCart={(id) => handleAddToCart(id, product.name)}
+                />
+              </div>
             ))}
           </div>
         )}
       </div>
     </div>
+  );
+}
+
+export default function ProductsPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500"></div>
+      </div>
+    }>
+      <ProductsContent />
+    </Suspense>
   );
 }

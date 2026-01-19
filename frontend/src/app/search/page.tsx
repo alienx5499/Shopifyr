@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { productApi, cartApi } from '@/lib/api';
 import { Breadcrumbs } from '@/components/layout/Breadcrumbs';
@@ -18,7 +18,9 @@ interface Product {
     isActive: boolean;
 }
 
-export default function SearchPage() {
+export const dynamic = 'force-dynamic';
+
+function SearchContent() {
     const searchParams = useSearchParams();
     const router = useRouter();
     const query = searchParams.get('q') || '';
@@ -107,5 +109,17 @@ export default function SearchPage() {
                 )}
             </div>
         </div>
+    );
+}
+
+export default function SearchPage() {
+    return (
+        <Suspense fallback={
+            <div className="min-h-screen bg-background flex items-center justify-center">
+                <Spinner size="lg" />
+            </div>
+        }>
+            <SearchContent />
+        </Suspense>
     );
 }

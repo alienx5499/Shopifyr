@@ -7,11 +7,11 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 public record OrderResponse(
-        Long id,
-        Long userId,
-        List<OrderItemResponse> items,
-        BigDecimal totalAmount,
-        OrderStatus status,
-        LocalDateTime createdAt
-) {
+                Long id,
+                Long userId,
+                List<OrderItemResponse> items,
+                BigDecimal totalAmount,
+                OrderStatus status,
+                LocalDateTime createdAt,
+                LocalDateTime estimatedDeliveryDate) {
 }
