@@ -21,43 +21,53 @@ const ModernInput = ({ label, icon, ...props }: any) => {
 
     useEffect(() => {
         setHasValue(!!props.value);
-        if (props.value && props.value.length > 3) setIsValid(true); // Simple mock validation
+        if (props.value && props.value.length > 3) setIsValid(true);
         else setIsValid(false);
     }, [props.value]);
 
     return (
-        <div className="mb-14 relative">
-            <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4 ml-10">
-                {label}
-            </label>
+        <div className="mb-0 relative py-2">
             <div className="relative flex items-center">
                 {/* Left Icon with Transition */}
-                <div className={`absolute left-0 transition-colors duration-300 ${focused ? 'text-blue-600' : 'text-gray-400'}`}>
+                <div className={`absolute left-0 transition-colors duration-300 ${focused ? 'text-black' : 'text-gray-300'}`}>
                     {icon}
                 </div>
 
-                {/* Input Field */}
-                <input
-                    {...props}
-                    onFocus={(e) => {
-                        setFocused(true);
-                        props.onFocus && props.onFocus(e);
-                    }}
-                    onBlur={(e) => {
-                        setFocused(false);
-                        props.onBlur && props.onBlur(e);
-                    }}
-                    className={`
-                        w-full pl-10 pr-8 py-5 bg-transparent text-gray-900 placeholder-gray-300 font-medium text-xl
-                        border-b-2 focus:outline-none transition-all duration-300
-                        ${focused ? 'border-blue-600' : 'border-gray-200'}
-                    `}
-                />
+                {/* Input Field - Floating Label Logic */}
+                <div className="w-full relative">
+                    <input
+                        {...props}
+                        onFocus={(e) => {
+                            setFocused(true);
+                            props.onFocus && props.onFocus(e);
+                        }}
+                        onBlur={(e) => {
+                            setFocused(false);
+                            props.onBlur && props.onBlur(e);
+                        }}
+                        placeholder="&nbsp;" // Required for CSS :placeholder-shown trick if needed, but we use controlled state here for label
+                        className={`
+                            peer w-full pl-10 pr-8 py-4 bg-transparent text-black font-medium text-lg
+                            border-b-[0.5px] focus:outline-none transition-all duration-500
+                            ${focused ? 'border-black' : 'border-gray-200'}
+                        `}
+                    />
+                    <label
+                        className={`
+                            absolute left-10 transition-all duration-300 pointer-events-none uppercase tracking-wider font-bold
+                            ${(focused || hasValue)
+                                ? '-top-4 text-[10px] text-gray-400'
+                                : 'top-4 text-xs text-gray-300'}
+                        `}
+                    >
+                        {label}
+                    </label>
+                </div>
 
                 {/* Validation Checkmark */}
                 {isValid && (
-                    <div className="absolute right-0 text-green-500 animate-in fade-in zoom-in duration-300">
-                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <div className="absolute right-0 text-emerald-500 animate-in fade-in zoom-in duration-300">
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
                         </svg>
                     </div>
@@ -144,7 +154,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ initialView }) => {
 
                 {/* Top Section: Logo & Toggle */}
                 <div className="absolute top-8 left-8 lg:top-12 lg:left-12">
-                    <span className="text-2xl font-extrabold text-blue-900 tracking-tighter">Shopifyr.</span>
+                    <span className="text-2xl font-extrabold text-black tracking-tighter">Shopifyr.</span>
                 </div>
 
                 <div className="absolute top-8 right-8 lg:top-12 lg:right-12 flex items-center gap-2 text-sm z-20">
@@ -153,87 +163,93 @@ export const AuthPage: React.FC<AuthPageProps> = ({ initialView }) => {
                     </span>
                     <button
                         onClick={() => toggleView(view === 'login' ? 'register' : 'login')}
-                        className="font-bold text-blue-600 hover:text-blue-700 transition-colors"
+                        className="font-bold text-black border-b border-black hover:opacity-70 transition-opacity pb-0.5"
                     >
                         {view === 'login' ? "Sign up now" : "Sign in"}
                     </button>
                 </div>
 
-                <div className="max-w-lg w-full mx-auto">
+                <div className="max-w-lg w-full mx-auto mt-20 lg:mt-0">
                     <motion.div
                         key={view}
                         initial={{ opacity: 0, x: -20 }}
                         animate={{ opacity: 1, x: 0 }}
                         transition={{ duration: 0.4 }}
                     >
-                        <h1 className="text-4xl font-extrabold text-gray-900 mb-2 tracking-tight">
-                            {view === 'login' ? 'Welcome Back!' : 'Create Account'}
+                        <h1 className="text-4xl lg:text-5xl font-extrabold text-black mb-4 tracking-tight leading-tight">
+                            {view === 'login' ? 'Welcome Back.' : 'Create Account.'}
                         </h1>
-                        <p className="text-gray-400 mb-32 font-medium">
+                        <p className="text-gray-400 mb-20 font-medium text-lg">
                             {view === 'login' ? 'Please login to access your account.' : 'Join us and start shopping premium.'}
                         </p>
 
                         <AnimatePresence mode="wait">
                             {view === 'login' ? (
-                                <form onSubmit={handleLoginSubmit}>
+                                <form onSubmit={handleLoginSubmit} className="space-y-12">
                                     <ModernInput label="Username or Email" icon={Icons.User} name="usernameOrEmail" value={loginData.usernameOrEmail} onChange={(e: any) => setLoginData(prev => ({ ...prev, usernameOrEmail: e.target.value }))} required />
                                     <ModernInput label="Password" icon={Icons.Lock} type="password" name="password" value={loginData.password} onChange={(e: any) => setLoginData(prev => ({ ...prev, password: e.target.value }))} required />
 
-                                    <div className="flex justify-end mb-8">
-                                        <a href="#" className="text-sm font-bold text-gray-400 hover:text-blue-600 transition-colors">Forgot Password?</a>
-                                    </div>
+                                    <div className="flex justify-between items-center pt-4">
+                                        <a href="#" className="text-sm font-bold text-gray-400 hover:text-black transition-colors">Forgot Password?</a>
 
-                                    <Button type="submit" disabled={loading} className="w-full h-14 bg-gradient-to-r from-blue-600 to-blue-800 hover:from-blue-700 hover:to-blue-900 text-white rounded-full font-bold text-lg shadow-lg hover:shadow-blue-600/30 transition-all flex items-center justify-center gap-3 group">
-                                        {loading ? 'Logging in...' : 'Sign In'}
-                                        {!loading && (
-                                            <svg className="w-5 h-5 group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
-                                            </svg>
-                                        )}
-                                    </Button>
+                                        <Button type="submit" disabled={loading} className="w-auto px-12 h-14 bg-black text-white rounded-full font-bold text-lg shadow-xl shadow-black/20 hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-3 group">
+                                            {loading ? 'Processing...' : 'Sign In'}
+                                            {!loading && (
+                                                <svg className="w-5 h-5 group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                                                </svg>
+                                            )}
+                                        </Button>
+                                    </div>
                                 </form>
                             ) : (
-                                <form onSubmit={handleRegisterSubmit}>
-                                    {/* Wizard Header */}
+                                <form onSubmit={handleRegisterSubmit} className="space-y-12">
+                                    {/* Minimalist Progress Bar */}
                                     {step < 3 && (
-                                        <div className="flex items-center gap-2 mb-10">
-                                            <div className={`h-1 flex-1 rounded-full ${step >= 1 ? 'bg-gradient-to-r from-blue-600 to-blue-800' : 'bg-gray-100'}`} />
-                                            <div className={`h-1 flex-1 rounded-full ${step >= 2 ? 'bg-gradient-to-r from-blue-600 to-blue-800' : 'bg-gray-100'}`} />
+                                        <div className="flex items-center gap-1 mb-14">
+                                            <div className={`h-0.5 flex-1 transition-colors duration-500 ${step >= 1 ? 'bg-black' : 'bg-gray-100'}`} />
+                                            <div className={`h-0.5 flex-1 transition-colors duration-500 ${step >= 2 ? 'bg-black' : 'bg-gray-100'}`} />
                                         </div>
                                     )}
 
                                     {step === 1 && (
-                                        <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}>
-                                            {/* Single Column Layout for Better Spacing */}
-                                            <ModernInput label="First Name" icon={Icons.User} name="firstName" value={registerData.firstName} onChange={handleRegisterChange} required />
-                                            <ModernInput label="Last Name" icon={Icons.User} name="lastName" value={registerData.lastName} onChange={handleRegisterChange} required />
+                                        <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-12">
+                                            <div className="grid grid-cols-2 gap-8">
+                                                <ModernInput label="First Name" icon={Icons.User} name="firstName" value={registerData.firstName} onChange={handleRegisterChange} required />
+                                                <ModernInput label="Last Name" icon={Icons.User} name="lastName" value={registerData.lastName} onChange={handleRegisterChange} required />
+                                            </div>
                                             <ModernInput label="Username" icon={Icons.User} name="username" value={registerData.username} onChange={handleRegisterChange} required />
                                             <ModernInput label="Email Address" icon={Icons.Mail} type="email" name="email" value={registerData.email} onChange={handleRegisterChange} required />
                                             <ModernInput label="Password" icon={Icons.Lock} type="password" name="password" value={registerData.password} onChange={handleRegisterChange} required />
 
-                                            <Button type="button" onClick={() => setStep(2)} className="w-full h-14 mt-6 bg-gradient-to-r from-blue-600 to-blue-800 hover:from-blue-700 hover:to-blue-900 text-white rounded-full font-bold text-lg shadow-lg hover:shadow-blue-600/30 transition-all flex items-center justify-center gap-3 group">
-                                                Next Step
-                                                <svg className="w-5 h-5 group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
-                                                </svg>
-                                            </Button>
+                                            <div className="flex justify-end pt-4">
+                                                <Button type="button" onClick={() => setStep(2)} className="px-12 h-14 bg-black text-white rounded-full font-bold text-lg shadow-xl shadow-black/20 hover:scale-105 transition-all flex items-center gap-3 group">
+                                                    Next Step
+                                                    <svg className="w-5 h-5 group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                                                    </svg>
+                                                </Button>
+                                            </div>
                                         </motion.div>
                                     )}
 
                                     {step === 2 && (
-                                        <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}>
+                                        <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-12">
                                             <ModernInput label="Street Address" icon={Icons.Home} name="addressLine1" value={registerData.addressLine1} onChange={handleRegisterChange} required />
 
-                                            <ModernInput label="City" icon={Icons.Map} name="city" value={registerData.city} onChange={handleRegisterChange} required />
-                                            <ModernInput label="State" icon={Icons.Map} name="state" value={registerData.state} onChange={handleRegisterChange} required />
+                                            <div className="grid grid-cols-2 gap-8">
+                                                <ModernInput label="City" icon={Icons.Map} name="city" value={registerData.city} onChange={handleRegisterChange} required />
+                                                <ModernInput label="State" icon={Icons.Map} name="state" value={registerData.state} onChange={handleRegisterChange} required />
+                                            </div>
 
-                                            <ModernInput label="Zip Code" icon={Icons.Map} name="zipCode" value={registerData.zipCode} onChange={handleRegisterChange} required />
-                                            <ModernInput label="Phone" icon={Icons.Phone} name="phoneNumber" value={registerData.phoneNumber} onChange={handleRegisterChange} required />
+                                            <div className="grid grid-cols-2 gap-8">
+                                                <ModernInput label="Zip Code" icon={Icons.Map} name="zipCode" value={registerData.zipCode} onChange={handleRegisterChange} required />
+                                                <ModernInput label="Phone" icon={Icons.Phone} name="phoneNumber" value={registerData.phoneNumber} onChange={handleRegisterChange} required />
+                                            </div>
 
-
-                                            <div className="flex gap-4 mt-8">
-                                                <button type="button" onClick={() => setStep(1)} className="px-8 font-bold text-gray-400 hover:text-gray-900 transition-colors">Back</button>
-                                                <Button type="submit" disabled={loading} className="flex-1 h-14 bg-gradient-to-r from-blue-600 to-blue-800 hover:from-blue-700 hover:to-blue-900 text-white rounded-full font-bold text-lg shadow-lg hover:shadow-blue-600/30 transition-all flex items-center justify-center gap-3">
+                                            <div className="flex items-center justify-between pt-8">
+                                                <button type="button" onClick={() => setStep(1)} className="font-bold text-gray-400 hover:text-black transition-colors">Back</button>
+                                                <Button type="submit" disabled={loading} className="px-12 h-14 bg-black text-white rounded-full font-bold text-lg shadow-xl shadow-black/20 hover:scale-105 transition-all flex items-center gap-3">
                                                     {loading ? 'Creating...' : 'Create Account'}
                                                 </Button>
                                             </div>
@@ -242,12 +258,12 @@ export const AuthPage: React.FC<AuthPageProps> = ({ initialView }) => {
 
                                     {step === 3 && (
                                         <div className="flex flex-col items-center justify-center py-10">
-                                            <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mb-6 animate-bounce">
-                                                <svg className="w-10 h-10 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <div className="w-20 h-20 bg-black rounded-full flex items-center justify-center mb-6 animate-bounce">
+                                                <svg className="w-10 h-10 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
                                                 </svg>
                                             </div>
-                                            <h3 className="text-2xl font-bold text-gray-900">Success!</h3>
+                                            <h3 className="text-2xl font-bold text-black">Success!</h3>
                                             <p className="text-gray-500 mt-2">Redirecting to home...</p>
                                         </div>
                                     )}
@@ -258,27 +274,24 @@ export const AuthPage: React.FC<AuthPageProps> = ({ initialView }) => {
                 </div>
             </div>
 
-            {/* RIGHT SIDE: Blue Section (Clean Gradient) */}
-            <div className="hidden lg:flex w-1/2 bg-gradient-to-br from-blue-600 via-blue-700 to-blue-900 relative overflow-hidden flex-col items-center justify-center h-screen">
+            {/* RIGHT SIDE: Cinematic Ink Black & Noise */}
+            <div className="hidden lg:flex w-1/2 bg-[#080808] relative overflow-hidden flex-col items-center justify-center h-screen px-20 text-center">
 
-                {/* Wavy Background Overlay */}
-                <svg className="absolute inset-0 w-full h-full opacity-20 text-white" viewBox="0 0 100 100" preserveAspectRatio="none">
-                    <path d="M0 50 Q 50 100 100 50 T 200 50" stroke="currentColor" strokeWidth="0.5" fill="none" />
-                    <path d="M0 30 Q 50 80 100 30 T 200 30" stroke="currentColor" strokeWidth="0.5" fill="none" />
-                    <path d="M0 70 Q 50 120 100 70 T 200 70" stroke="currentColor" strokeWidth="0.5" fill="none" />
-                </svg>
+                {/* Noise Overlay */}
+                <div className="absolute inset-0 opacity-[0.03] pointer-events-none z-0"
+                    style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")` }}
+                />
 
-                {/* Abstract Shapes for Depth */}
-                <div className="absolute top-[-20%] left-[-20%] w-[800px] h-[800px] bg-blue-400 rounded-full mix-blend-overlay filter blur-3xl opacity-20 animate-pulse" />
-                <div className="absolute bottom-[-20%] right-[-20%] w-[800px] h-[800px] bg-purple-500 rounded-full mix-blend-overlay filter blur-3xl opacity-20 animate-pulse animation-delay-2000" />
+                {/* Ambient Glow */}
+                <div className="absolute top-[-20%] right-[-10%] w-[600px] h-[600px] bg-white rounded-full mix-blend-overlay blur-[120px] opacity-[0.03]" />
+                <div className="absolute bottom-[-10%] left-[-10%] w-[500px] h-[500px] bg-blue-500 rounded-full mix-blend-overlay blur-[100px] opacity-[0.05]" />
 
-                {/* Logo/Branding in Blue Section */}
-                <div className="relative z-10 text-center px-12">
-                    <h2 className="text-4xl font-extrabold text-white mb-6 tracking-tight">
-                        The Future of Shopping.
+                <div className="relative z-10">
+                    <h2 className="text-5xl font-extrabold text-white mb-8 tracking-tight leading-tight">
+                        The Future of <br /> Luxury Shopping.
                     </h2>
-                    <p className="text-blue-100 text-lg leading-relaxed max-w-sm mx-auto font-light">
-                        Join our premium marketplace for exclusive drops, instant delivery, and verified quality.
+                    <p className="text-gray-400 text-lg leading-relaxed max-w-md mx-auto font-medium">
+                        Exclusive drops, instant delivery, and verified quality. Join the new standard.
                     </p>
                 </div>
             </div>

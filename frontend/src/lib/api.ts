@@ -7,6 +7,7 @@ const api = axios.create({
 });
 
 // Add token to requests
+// Add token to requests
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem('token');
   if (token) {
@@ -14,6 +15,21 @@ api.interceptors.request.use((config) => {
   }
   return config;
 });
+
+// Handle 401 responses
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      if (typeof window !== 'undefined' && !window.location.pathname.includes('/login')) {
+        window.location.href = '/login';
+      }
+    }
+    return Promise.reject(error);
+  }
+);
 
 export const authApi = {
   register: async (data: any) => {
@@ -98,6 +114,32 @@ export const fileApi = {
         'Content-Type': 'multipart/form-data',
       },
     });
+    return response.data;
+  },
+};
+
+export const userApi = {
+  getMe: async () => {
+    const response = await api.get('/users/me');
+    return response.data;
+  },
+  updateProfile: async (data: any) => {
+    const response = await api.put('/users/me', data);
+    return response.data;
+  },
+};
+
+export const watchlistApi = {
+  getMyWishlist: async () => {
+    const response = await api.get('/wishlist');
+    return response.data;
+  },
+  addToWishlist: async (productId: number) => {
+    const response = await api.post(`/wishlist/${productId}`);
+    return response.data;
+  },
+  removeFromWishlist: async (productId: number) => {
+    const response = await api.delete(`/wishlist/${productId}`);
     return response.data;
   },
 };
