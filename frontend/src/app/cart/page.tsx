@@ -1,14 +1,56 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
-import { motion } from 'framer-motion';
-import toast from 'react-hot-toast';
+import { motion, AnimatePresence } from 'framer-motion';
 import { cartApi } from '@/lib/api';
-import { Breadcrumbs } from '@/components/layout/Breadcrumbs';
-import { Button } from '@/components/ui/Button';
 import { useCart } from '@/contexts/CartContext';
+import toast from 'react-hot-toast';
+
+/**
+ * PREMIUM DESIGN SYSTEM - UTILITIES
+ * Consolidated Luxury Button and layout
+ */
+
+export const Button = ({
+  variant = 'primary',
+  size = 'md',
+  isLoading = false,
+  children,
+  className = '',
+  disabled,
+  ...props
+}: any) => {
+  const baseStyles = 'inline-flex items-center justify-center font-bold tracking-tight uppercase transition-all duration-300 disabled:opacity-30 disabled:cursor-not-allowed active:scale-95';
+
+  const variants = {
+    primary: 'bg-black text-white hover:bg-neutral-800 shadow-xl shadow-black/10',
+    secondary: 'bg-neutral-100 text-black hover:bg-neutral-200',
+    outline: 'bg-transparent border-[0.5px] border-black/10 text-black hover:border-black',
+    ghost: 'bg-transparent text-black hover:bg-black/5'
+  };
+
+  const sizes = {
+    sm: 'px-6 py-2.5 text-[10px]',
+    md: 'px-10 py-4 text-xs',
+    lg: 'px-14 py-5 text-sm'
+  };
+
+  return (
+    <button
+      className={`${baseStyles} ${variants[variant as keyof typeof variants]} ${sizes[size as keyof typeof sizes]} rounded-none ${className}`}
+      disabled={disabled || isLoading}
+      {...props}
+    >
+      {isLoading ? (
+        <div className="flex items-center gap-2">
+          <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+          <span>Processing</span>
+        </div>
+      ) : children}
+    </button>
+  );
+};
 
 interface CartItem {
   id: number;
@@ -25,15 +67,12 @@ interface Cart {
   totalAmount: number;
 }
 
+// MAIN COMPONENT
 export default function CartPage() {
   const router = useRouter();
   const { updateCartCount } = useCart();
   const [cart, setCart] = useState<Cart | null>(null);
   const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    loadCart();
-  }, []);
 
   const loadCart = async () => {
     try {
@@ -44,53 +83,59 @@ export default function CartPage() {
       if (error.response?.status === 401) {
         router.push('/login');
       } else {
-        toast.error('Failed to load cart');
+        console.error(error);
       }
     } finally {
       setLoading(false);
     }
   };
 
+  useEffect(() => {
+    loadCart();
+  }, []);
+
   const handleUpdateQuantity = async (itemId: number, newQuantity: number, productName: string) => {
     if (newQuantity < 1) return;
     try {
+      // Optimistic update for UI responsiveness
+      if (cart) {
+        const updatedItems = cart.items.map((item) =>
+          item.id === itemId ? { ...item, quantity: newQuantity } : item
+        );
+        // Recalculate total roughly (server will maintain truth)
+        const newTotal = updatedItems.reduce((acc, item) => acc + (item.productPrice * item.quantity), 0);
+        setCart({ ...cart, items: updatedItems, totalAmount: newTotal });
+      }
+
       await cartApi.updateItem(itemId, newQuantity);
-      await loadCart();
-      toast.success(`Updated ${productName} quantity`);
+      await loadCart(); // Re-sync with server
     } catch (error) {
       toast.error('Failed to update quantity');
+      await loadCart(); // Revert on error
     }
   };
 
   const handleRemoveItem = async (itemId: number, productName: string) => {
     try {
+      if (cart) {
+        const updatedItems = cart.items.filter((item) => item.id !== itemId);
+        const newTotal = updatedItems.reduce((acc, item) => acc + (item.productPrice * item.quantity), 0);
+        setCart({ ...cart, items: updatedItems, totalAmount: newTotal });
+      }
+
       await cartApi.removeItem(itemId);
       await loadCart();
-      toast.success(`Removed ${productName} from cart`);
+      toast.success('Item removed');
     } catch (error) {
       toast.error('Failed to remove item');
-    }
-  };
-
-  const handleClearCart = async () => {
-    try {
-      await cartApi.clear();
       await loadCart();
-      toast.success('Cart cleared');
-    } catch (error) {
-      toast.error('Failed to clear cart');
     }
   };
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-white py-8">
-        <div className="container mx-auto">
-          <div className="animate-pulse space-y-4">
-            <div className="h-8 bg-gray-200 rounded w-1/4" />
-            <div className="h-64 bg-gray-200 rounded" />
-          </div>
-        </div>
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <div className="w-8 h-8 border-2 border-neutral-200 border-t-black rounded-full animate-spin" />
       </div>
     );
   }
@@ -98,236 +143,161 @@ export default function CartPage() {
   const isEmpty = !cart || !cart.items || cart.items.length === 0;
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white py-8">
-      <div className="container mx-auto">
-        <Breadcrumbs items={[{ label: 'Shopping Cart' }]} />
-
-        <motion.h1
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="text-4xl md:text-5xl font-bold text-gray-900 mb-8"
-        >
-          Shopping Cart
-        </motion.h1>
-
+    <div className="min-h-screen bg-[#F9F9FB] pt-32 pb-40 font-sans selection:bg-black selection:text-white">
+      <div className="container mx-auto px-6 lg:px-20">
         {isEmpty ? (
           <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="text-center py-20"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="flex flex-col items-center justify-center py-40 text-center"
           >
-            <div className="w-32 h-32 bg-gradient-to-br from-blue-100 to-blue-50 rounded-full flex items-center justify-center mx-auto mb-6">
-              <svg className="w-16 h-16 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
-              </svg>
+            <div className="text-[120px] leading-none font-black text-neutral-100 select-none uppercase tracking-tighter mb-4">
+              Void
             </div>
-            <h2 className="text-3xl font-bold text-gray-900 mb-4">Your cart is empty</h2>
-            <p className="text-gray-600 mb-8 text-lg">Add some products to get started!</p>
+            <h1 className="text-2xl font-bold text-neutral-900 mb-6 tracking-tight">Your collection is empty.</h1>
+            <p className="text-neutral-400 mb-12 max-w-sm font-medium leading-relaxed">
+              Discover pieces designed for modern living. Your next essential is waiting in our latest collection.
+            </p>
             <Button onClick={() => router.push('/products')} size="lg">
-              Continue Shopping
+              Start Exploring
             </Button>
           </motion.div>
         ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {/* Cart Items */}
-            <div className="lg:col-span-2 space-y-4">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-2xl font-semibold text-gray-900">
-                  {cart.items.length} {cart.items.length === 1 ? 'Item' : 'Items'}
-                </h2>
-                <div className="flex gap-4">
-                  <button
-                    onClick={handleClearCart}
-                    className="text-sm text-red-600 hover:text-red-700 transition-colors font-medium flex items-center"
-                  >
-                    <svg className="w-4 h-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                    </svg>
-                    Clear Cart
-                  </button>
-                  <Button
-                    size="sm"
-                    onClick={() => router.push('/checkout')}
-                    className="md:hidden"
-                  >
-                    Checkout
-                  </Button>
+          <div className="max-w-[1400px] mx-auto">
+            <div className="flex flex-col gap-32">
+
+              {/* Items List - Full Width */}
+              <div className="w-full">
+                <div className="space-y-12">
+                  <AnimatePresence mode="popLayout">
+                    {cart.items.map((item, index) => (
+                      <motion.div
+                        key={item.id}
+                        layout
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -20 }}
+                        transition={{ delay: index * 0.05, duration: 0.5 }}
+                        className="flex flex-col md:flex-row gap-12 pb-12 border-b border-black/10 last:border-0 items-start group"
+                      >
+                        {/* Product Image */}
+                        <div className="w-48 aspect-[3/4] bg-[#F5F5F7] flex-shrink-0 overflow-hidden relative group cursor-pointer">
+                          {item.productImageUrl ? (
+                            <img
+                              src={item.productImageUrl}
+                              alt={item.productName}
+                              className="w-full h-full object-cover mix-blend-multiply grayscale group-hover:grayscale-0 transition-all duration-700"
+                            />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center text-neutral-300 text-[10px] uppercase font-bold tracking-widest">
+                              No Image
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Product Details */}
+                        <div className="flex-1 w-full pt-2">
+                          <div className="flex flex-col md:flex-row justify-between items-start mb-6 gap-4">
+                            <div>
+                              <h3 className="text-3xl font-black tracking-tighter text-black uppercase leading-none mb-2">
+                                {item.productName}
+                              </h3>
+                              <div className="text-[10px] font-bold text-neutral-400 uppercase tracking-[0.3em]">
+                                Ref. {item.productId.toString().padStart(8, '0')}
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              <div className="text-2xl font-black tracking-tight mb-1">
+                                ${item.productPrice.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center justify-between mt-8">
+                            {/* Quantity */}
+                            <div className="flex items-center border border-black/10 h-10 w-fit bg-white">
+                              <button
+                                onClick={() => handleUpdateQuantity(item.id, item.quantity - 1, item.productName)}
+                                className="w-12 h-full flex items-center justify-center hover:bg-neutral-100 transition-colors text-xl font-light"
+                              >
+                                &minus;
+                              </button>
+                              <span className="w-10 text-center text-xs font-bold border-x border-black/5 h-full flex items-center justify-center">{item.quantity}</span>
+                              <button
+                                onClick={() => handleUpdateQuantity(item.id, item.quantity + 1, item.productName)}
+                                className="w-12 h-full flex items-center justify-center hover:bg-neutral-100 transition-colors text-xl font-light"
+                              >
+                                &#43;
+                              </button>
+                            </div>
+
+                            {/* Actions */}
+                            <button
+                              onClick={() => handleRemoveItem(item.id, item.productName)}
+                              className="text-[10px] font-black uppercase tracking-[0.25em] text-neutral-400 hover:text-red-600 transition-colors border-b border-transparent hover:border-red-600 pb-1"
+                            >
+                              Remove Item
+                            </button>
+                          </div>
+                        </div>
+                      </motion.div>
+                    ))}
+                  </AnimatePresence>
                 </div>
               </div>
 
-              {cart.items.map((item, index) => (
-                <motion.div
-                  key={item.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.05 }}
-                  className="bg-white rounded-2xl shadow-md hover:shadow-lg transition-shadow p-6 flex gap-6"
-                >
-                  {/* Product Image */}
-                  <Link href={`/products/${item.productId}`} className="flex-shrink-0">
-                    <div className="w-32 h-32 bg-gray-100 rounded-xl overflow-hidden group">
-                      {item.productImageUrl ? (
-                        <img
-                          src={item.productImageUrl}
-                          alt={item.productName}
-                          className="w-full h-full object-cover group-hover:scale-110 transition-transform"
-                        />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-blue-100 to-blue-50">
-                          <svg className="w-12 h-12 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
-                          </svg>
-                        </div>
-                      )}
+              {/* Order Summary Section - Massive Bottom Layout */}
+              <div className="w-full border-t border-black pt-20">
+                <div className="flex flex-col gap-16">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-16 items-start">
+                    <div className="space-y-4">
+                      <h2 className="text-5xl lg:text-7xl font-black tracking-tighter text-black uppercase leading-none">Order<br />Summary</h2>
+                      <p className="text-neutral-400 text-xs font-bold uppercase tracking-widest max-w-sm pt-4">
+                        Shipping costs and additional taxes will be calculated at step two of checkout based on your location.
+                      </p>
                     </div>
-                  </Link>
 
-                  {/* Product Info */}
-                  <div className="flex-1 flex flex-col">
-                    <Link href={`/products/${item.productId}`}>
-                      <h3 className="text-lg font-semibold text-gray-900 hover:text-blue-600 transition-colors mb-2">
-                        {item.productName}
-                      </h3>
-                    </Link>
-                    <p className="text-2xl font-bold text-blue-600 mb-4">
-                      ${item.productPrice.toFixed(2)}
-                    </p>
-
-                    <div className="mt-auto flex items-center justify-between">
-                      {/* Quantity Controls */}
-                      <div className="flex items-center gap-3">
-                        <motion.button
-                          whileHover={{ scale: 1.1 }}
-                          whileTap={{ scale: 0.9 }}
-                          onClick={() => handleUpdateQuantity(item.id, item.quantity - 1, item.productName)}
-                          className="w-10 h-10 rounded-lg border-2 border-gray-200 hover:border-blue-600 hover:bg-blue-50 transition-all flex items-center justify-center font-semibold text-gray-700"
-                        >
-                          −
-                        </motion.button>
-                        <span className="text-lg font-semibold w-12 text-center">{item.quantity}</span>
-                        <motion.button
-                          whileHover={{ scale: 1.1 }}
-                          whileTap={{ scale: 0.9 }}
-                          onClick={() => handleUpdateQuantity(item.id, item.quantity + 1, item.productName)}
-                          className="w-10 h-10 rounded-lg border-2 border-gray-200 hover:border-sky-500 hover:bg-sky-50 transition-all flex items-center justify-center font-semibold text-gray-700"
-                        >
-                          +
-                        </motion.button>
+                    <div className="flex flex-col gap-8 w-full">
+                      <div className="flex justify-between items-baseline border-b border-black/10 pb-4">
+                        <span className="text-xs font-bold uppercase tracking-[0.3em] text-neutral-400">Subtotal</span>
+                        <span className="text-xl font-bold text-black font-mono tracking-tight">${cart.totalAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
                       </div>
-
-                      {/* Remove Button */}
-                      <motion.button
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                        onClick={() => handleRemoveItem(item.id, item.productName)}
-                        className="text-red-600 hover:text-red-700 transition-colors flex items-center gap-2 font-medium"
-                      >
-                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                        </svg>
-                        Remove
-                      </motion.button>
+                      <div className="flex justify-between items-baseline border-b border-black/10 pb-4">
+                        <span className="text-xs font-bold uppercase tracking-[0.3em] text-neutral-400">Shipping</span>
+                        <span className="text-xl font-bold text-emerald-600 font-mono tracking-tight">FREE</span>
+                      </div>
+                      <div className="flex justify-between items-end pt-4">
+                        <span className="text-sm font-black uppercase tracking-[0.3em] text-black">Total Due</span>
+                        <span className="text-6xl lg:text-8xl font-black tracking-tighter text-black leading-none">
+                          ${cart.totalAmount.toLocaleString(undefined, { minimumFractionDigits: 0 })}<span className="text-2xl align-top text-neutral-400 font-bold">.00</span>
+                        </span>
+                      </div>
                     </div>
                   </div>
 
-                  {/* Item Total */}
-                  <div className="flex-shrink-0 text-right">
-                    <p className="text-sm text-gray-600 mb-1">Subtotal</p>
-                    <p className="text-2xl font-bold text-gray-900">
-                      ${(item.productPrice * item.quantity).toFixed(2)}
-                    </p>
-                  </div>
-                </motion.div>
-              ))}
-            </div>
-
-            {/* Order Summary */}
-            <div className="lg:col-span-1">
-              <motion.div
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                className="bg-white rounded-2xl shadow-lg p-6 sticky top-24"
-              >
-                <h2 className="text-2xl font-bold text-gray-900 mb-6">Order Summary</h2>
-
-                <div className="space-y-4 mb-6">
-                  <div className="flex justify-between text-gray-600">
-                    <span>Subtotal</span>
-                    <span className="font-semibold text-gray-900">${(cart.totalAmount || 0).toFixed(2)}</span>
-                  </div>
-                  <div className="flex justify-between text-gray-600">
-                    <span>Shipping</span>
-                    <span className="font-semibold text-green-600">Free</span>
-                  </div>
-                  <div className="flex justify-between text-gray-600">
-                    <span>Tax</span>
-                    <span className="font-semibold text-gray-900">$0.00</span>
+                  <div className="flex flex-col gap-6 pt-12">
+                    <Button
+                      onClick={() => router.push('/checkout')}
+                      className="w-full py-10 text-xl lg:text-2xl !bg-black !text-white !rounded-none hover:!bg-neutral-800 !shadow-none tracking-[0.4em] uppercase transition-all duration-500"
+                      size="lg"
+                    >
+                      Secure Checkout
+                    </Button>
+                    <button
+                      onClick={() => router.push('/products')}
+                      className="w-full py-4 text-[10px] font-black uppercase tracking-[0.3em] text-neutral-400 hover:text-black transition-colors block text-center"
+                    >
+                      Continue Shopping
+                    </button>
                   </div>
                 </div>
+              </div>
 
-                <div className="border-t border-gray-200 pt-4 mb-6">
-                  <div className="flex justify-between text-xl font-bold">
-                    <span>Total</span>
-                    <span className="text-blue-600 font-bold">
-                      ${(cart.totalAmount || 0).toFixed(2)}
-                    </span>
-                  </div>
-                </div>
-
-                <Button
-                  variant="primary"
-                  size="lg"
-                  onClick={() => router.push('/checkout')}
-                  className="w-full mb-4"
-                >
-                  <svg className="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  Proceed to Checkout
-                </Button>
-
-                <Button
-                  variant="outline"
-                  size="md"
-                  onClick={() => router.push('/products')}
-                  className="w-full"
-                >
-                  Continue Shopping
-                </Button>
-
-                {/* Features */}
-                <div className="mt-6 pt-6 border-t border-gray-200 space-y-3">
-                  {[
-                    { icon: '🔒', text: 'Secure checkout' },
-                    { icon: '🚚', text: 'Free shipping over $50' },
-                    { icon: '↩️', text: '30-day returns' }
-                  ].map((feature, index) => (
-                    <div key={index} className="flex items-center gap-3 text-sm text-gray-600">
-                      <span className="text-lg">{feature.icon}</span>
-                      <span>{feature.text}</span>
-                    </div>
-                  ))}
-                </div>
-              </motion.div>
             </div>
           </div>
-        )}
-      </div>
-
-      {/* Mobile Sticky Checkout Bar - High Z-index to ensure visibility */}
-      {!isEmpty && (
-        <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4 md:hidden shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] z-[100]">
-          <div className="flex items-center justify-between gap-4 max-w-7xl mx-auto">
-            <div className="flex flex-col">
-              <span className="text-sm text-gray-500">Total</span>
-              <span className="text-lg font-bold text-gray-900">${(cart.totalAmount || 0).toFixed(2)}</span>
-            </div>
-            <Button onClick={() => router.push('/checkout')} size="lg" className="flex-1 shadow-lg bg-orange-600 hover:bg-orange-700">
-              Checkout
-            </Button>
-          </div>
-        </div>
-      )}
-    </div>
+        )
+        }
+      </div >
+    </div >
   );
 }
