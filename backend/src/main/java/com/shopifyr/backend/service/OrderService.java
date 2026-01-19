@@ -31,10 +31,10 @@ public class OrderService {
     private final EmailService emailService;
 
     public OrderService(OrderRepository orderRepository,
-                        CartRepository cartRepository,
-                        UserRepository userRepository,
-                        InventoryRepository inventoryRepository,
-                        EmailService emailService) {
+            CartRepository cartRepository,
+            UserRepository userRepository,
+            InventoryRepository inventoryRepository,
+            EmailService emailService) {
         this.orderRepository = orderRepository;
         this.cartRepository = cartRepository;
         this.userRepository = userRepository;
@@ -63,7 +63,8 @@ public class OrderService {
 
         for (CartItem cartItem : cart.getItems()) {
             Inventory inventory = inventoryRepository.findByProductId(cartItem.getProduct().getId())
-                    .orElseThrow(() -> new IllegalArgumentException("Product out of stock: " + cartItem.getProduct().getName()));
+                    .orElseThrow(() -> new IllegalArgumentException(
+                            "Product out of stock: " + cartItem.getProduct().getName()));
 
             if (inventory.getQuantity() < cartItem.getQuantity()) {
                 throw new IllegalArgumentException("Insufficient stock for: " + cartItem.getProduct().getName());
@@ -97,8 +98,7 @@ public class OrderService {
             emailService.sendOrderConfirmationEmail(
                     user.getEmail(),
                     order.getId(),
-                    order.getTotalAmount().doubleValue()
-            );
+                    order.getTotalAmount().doubleValue());
         } catch (Exception e) {
             // Log error but don't fail the order
             System.err.println("Failed to send order confirmation email: " + e.getMessage());
@@ -107,13 +107,14 @@ public class OrderService {
         return toResponse(order);
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public List<OrderResponse> getUserOrders(Long userId) {
         List<Order> orders = orderRepository.findByUserIdOrderByCreatedAtDesc(userId);
+        orders.forEach(this::checkAndUpdateStatus);
         return orders.stream().map(this::toResponse).collect(Collectors.toList());
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public OrderResponse getOrderById(Long orderId, Long userId) {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new ResourceNotFoundException("Order not found"));
@@ -122,7 +123,35 @@ public class OrderService {
             throw new IllegalArgumentException("Order does not belong to user");
         }
 
+        checkAndUpdateStatus(order);
+
         return toResponse(order);
+    }
+
+    private void checkAndUpdateStatus(Order order) {
+        if (order.getStatus() == OrderStatus.CANCELLED || order.getStatus() == OrderStatus.DELIVERED) {
+            return;
+        }
+
+        long secondsSinceCreation = java.time.temporal.ChronoUnit.SECONDS.between(order.getCreatedAt(),
+                java.time.LocalDateTime.now());
+
+        boolean updated = false;
+        // PENDING -> CONFIRMED after 15 seconds
+        if (order.getStatus() == OrderStatus.PENDING && secondsSinceCreation >= 15) {
+            order.setStatus(OrderStatus.CONFIRMED);
+            updated = true;
+        }
+
+        // CONFIRMED -> DELIVERED after 60 seconds (Simulated)
+        if (order.getStatus() == OrderStatus.CONFIRMED && secondsSinceCreation >= 60) {
+            order.setStatus(OrderStatus.DELIVERED);
+            updated = true;
+        }
+
+        if (updated) {
+            orderRepository.save(order);
+        }
     }
 
     private OrderResponse toResponse(Order order) {
@@ -133,9 +162,14 @@ public class OrderService {
                         item.getProduct().getName(),
                         item.getQuantity(),
                         item.getUnitPrice(),
-                        item.getUnitPrice().multiply(BigDecimal.valueOf(item.getQuantity()))
-                ))
+                        item.getUnitPrice().multiply(BigDecimal.valueOf(item.getQuantity())),
+                        item.getProduct().getImageUrl()))
                 .collect(Collectors.toList());
+
+        java.time.LocalDateTime estimatedDelivery = null;
+        if (order.getStatus() != OrderStatus.PENDING && order.getStatus() != OrderStatus.CANCELLED) {
+            estimatedDelivery = order.getCreatedAt().plusDays(5);
+        }
 
         return new OrderResponse(
                 order.getId(),
@@ -143,7 +177,7 @@ public class OrderService {
                 items,
                 order.getTotalAmount(),
                 order.getStatus(),
-                order.getCreatedAt()
-        );
+                order.getCreatedAt(),
+                estimatedDelivery);
     }
 }
