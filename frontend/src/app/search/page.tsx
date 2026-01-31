@@ -6,6 +6,8 @@ import { productApi, cartApi } from '@/lib/api';
 import { Breadcrumbs } from '@/components/layout/Breadcrumbs';
 import { ProductCard } from '@/components/features/ProductCard';
 import { Spinner } from '@/components/ui/Spinner';
+import { useCart } from '@/contexts/CartContext';
+import toast from 'react-hot-toast';
 
 interface Product {
     id: number;
@@ -23,6 +25,7 @@ export const dynamic = 'force-dynamic';
 function SearchContent() {
     const searchParams = useSearchParams();
     const router = useRouter();
+    const { incrementCartCount } = useCart();
     const query = searchParams.get('q') || '';
 
     const [products, setProducts] = useState<Product[]>([]);
@@ -56,17 +59,20 @@ function SearchContent() {
         }
     };
 
-    const handleAddToCart = async (productId: number) => {
-        try {
-            await cartApi.addItem(productId, 1);
-            alert('Added to cart!');
-        } catch (error: any) {
+    const handleAddToCart = (productId: number) => {
+        // Optimistic UI
+        incrementCartCount();
+        toast.success('Added to Cart', { id: `search-cart-${productId}`, duration: 2000 });
+
+        // Background call
+        cartApi.addItem(productId, 1).catch((error: any) => {
             if (error.response?.status === 401) {
+                toast.error('Please login to add items to cart', { id: `search-cart-${productId}` });
                 router.push('/login');
             } else {
-                alert('Failed to add to cart');
+                toast.error('Failed to add to cart', { id: `search-cart-${productId}` });
             }
-        }
+        });
     };
 
     return (

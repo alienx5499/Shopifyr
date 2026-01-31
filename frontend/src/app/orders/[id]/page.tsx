@@ -182,7 +182,7 @@ export default function OrderDetailsPage() {
                                         <img
                                             src={item.productImageUrl}
                                             alt=""
-                                            className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-700 hover:scale-105"
+                                            className="w-full h-full object-cover transition-all duration-700 hover:scale-105"
                                         />
                                     </div>
                                     <div className="flex-1 w-full pt-2">

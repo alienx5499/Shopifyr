@@ -75,7 +75,7 @@ export default function CheckoutPage() {
     const [placing, setPlacing] = useState(false);
     const [formData, setFormData] = useState({
         firstName: '', lastName: '', email: '', phoneNumber: '',
-        addressLine1: '', city: '', zipCode: ''
+        addressLine1: '', addressLine2: '', city: '', state: '', zipCode: '', country: ''
     });
 
     useEffect(() => {
@@ -99,8 +99,11 @@ export default function CheckoutPage() {
                         email: userData.email || '',
                         phoneNumber: userData.phoneNumber || '',
                         addressLine1: userData.addressLine1 || '',
+                        addressLine2: userData.addressLine2 || '',
                         city: userData.city || '',
-                        zipCode: userData.zipCode || ''
+                        state: userData.state || '',
+                        zipCode: userData.zipCode || '',
+                        country: userData.country || ''
                     });
                 }
             } catch (e) { console.error(e); }
@@ -206,8 +209,13 @@ export default function CheckoutPage() {
                                 <div className="md:col-span-2">
                                     <LuxuryInput label="Street Address" name="addressLine1" value={formData.addressLine1} onChange={handleChange} required />
                                 </div>
-                                <LuxuryInput label="City / Region" name="city" value={formData.city} onChange={handleChange} required />
+                                <div className="md:col-span-2">
+                                    <LuxuryInput label="Unit / Suite (Optional)" name="addressLine2" value={formData.addressLine2} onChange={handleChange} />
+                                </div>
+                                <LuxuryInput label="City" name="city" value={formData.city} onChange={handleChange} required />
+                                <LuxuryInput label="Region / State" name="state" value={formData.state} onChange={handleChange} required />
                                 <LuxuryInput label="Postal Code" name="zipCode" value={formData.zipCode} onChange={handleChange} required />
+                                <LuxuryInput label="Country" name="country" value={formData.country} onChange={handleChange} required />
                             </div>
                         </motion.section>
 
@@ -292,7 +300,7 @@ export default function CheckoutPage() {
                                                     <img
                                                         src={item.productImageUrl}
                                                         alt={item.productName}
-                                                        className="w-full h-full object-cover grayscale group-hover:grayscale-0 group-hover:scale-110 transition-all duration-700"
+                                                        className="w-full h-full object-cover group-hover:scale-110 transition-all duration-700"
                                                     />
                                                 )}
                                                 <div className="absolute top-2 right-2 bg-black text-white text-[8px] font-black px-2 py-1 uppercase tracking-wider">

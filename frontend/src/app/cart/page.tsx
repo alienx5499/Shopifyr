@@ -186,7 +186,7 @@ export default function CartPage() {
                             <img
                               src={item.productImageUrl}
                               alt={item.productName}
-                              className="w-full h-full object-cover mix-blend-multiply grayscale group-hover:grayscale-0 transition-all duration-700"
+                              className="w-full h-full object-cover mix-blend-multiply transition-all duration-700"
                             />
                           ) : (
                             <div className="w-full h-full flex items-center justify-center text-neutral-300 text-[10px] uppercase font-bold tracking-widest">

@@ -15,6 +15,7 @@ export default function HomePage() {
   const { isLoggedIn, isLoading: authLoading } = useAuth();
   const { incrementCartCount } = useCart();
   const [featuredProducts, setFeaturedProducts] = useState<any[]>([]);
+  const [dealProduct, setDealProduct] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -33,9 +34,25 @@ export default function HomePage() {
   const loadFeaturedProducts = async () => {
     try {
       const response = await productApi.getAll({ page: 0, size: 12 });
-      setFeaturedProducts(response.content || []);
+      const products = response.content || [];
+      setFeaturedProducts(products);
+
+      // Auto-select a dynamic deal product (e.g., the 5th item or first available)
+      if (products.length > 4) setDealProduct(products[4]);
+      else if (products.length > 0) setDealProduct(products[0]);
     } catch (error) { console.error(error); }
     finally { setLoading(false); }
+  };
+
+  const handleOptimisticAddToCart = (productId: number) => {
+    // Instant Feedback
+    incrementCartCount();
+    toast.success('Added to Cart', { id: `cart-${productId}`, duration: 2000 });
+
+    // Background execution
+    cartApi.addItem(productId, 1).catch(() => {
+      toast.error('Failed to sync cart', { id: `cart-${productId}` });
+    });
   };
 
   if (authLoading || !isLoggedIn) {
@@ -60,8 +77,7 @@ export default function HomePage() {
           {/* LEFT: 2x2 CATEGORY GRID */}
           <div>
             <div className="flex justify-between items-end mb-8">
-              <h2 className="text-xs font-black uppercase tracking-[0.4em]">01 // Sector Index</h2>
-              <span className="text-[10px] text-neutral-300 font-bold uppercase tracking-widest">Select Sector</span>
+              <h2 className="text-sm font-black uppercase tracking-tighter">Collections</h2>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
@@ -71,10 +87,9 @@ export default function HomePage() {
                 { name: 'Books', ref: 'SEC-03', image: '/assets/images/categories/books.png' },
                 { name: 'Shoes', ref: 'SEC-04', image: '/assets/images/products/nike_air_max.png' }
               ].map((cat) => (
-                <Link key={cat.name} href={`/products?category=${cat.name}`} className="group relative bg-white aspect-square overflow-hidden hover:z-10 hover:shadow-2xl transition-all duration-500 block rounded-sm">
+                <Link key={cat.name} href={`/products?category=${cat.name}`} className="group relative bg-white aspect-square overflow-hidden block rounded-sm">
                   <div className="absolute inset-0">
-                    <img src={cat.image} alt="" className="w-full h-full object-cover transition-all duration-700 group-hover:scale-105" />
-                    <div className="absolute inset-0 bg-black/10 group-hover:bg-transparent transition-colors" />
+                    <img src={cat.image} alt="" className="w-full h-full object-cover" />
                   </div>
                   <div className="absolute inset-0 p-6 flex flex-col justify-end bg-gradient-to-t from-black/80 to-transparent">
                     <span className="text-[8px] font-black text-white/70 tracking-widest uppercase mb-1">{cat.ref}</span>
@@ -88,27 +103,38 @@ export default function HomePage() {
             </div>
           </div>
 
-          {/* RIGHT: TODAY'S DEAL */}
+          {/* RIGHT: DYNAMIC TODAY'S DEAL */}
           <div className="flex flex-col h-full">
             <div className="flex justify-between items-end mb-8">
-              <h2 className="text-xs font-black uppercase tracking-[0.4em]">02 // Today's Deal</h2>
-              <span className="text-[10px] text-emerald-500 font-bold uppercase tracking-widest animate-pulse">Live Offer</span>
+              <h2 className="text-sm font-black uppercase tracking-tighter">Limited Offer</h2>
             </div>
 
-            <div className="relative flex-1 bg-neutral-900 overflow-hidden group min-h-[500px] rounded-sm">
-              <div className="absolute inset-0">
-                <img src="/assets/images/products/product_headphones_1768419474302.png" alt="Deal" className="w-full h-full object-contain p-12 transition-transform duration-700 group-hover:scale-105" />
+            <div className="relative flex-1 bg-[#F9F9F9] border border-neutral-100 overflow-hidden group min-h-[500px] rounded-sm shadow-sm">
+              <div className="absolute inset-0 flex items-center justify-center">
+                {dealProduct ? (
+                  <img src={dealProduct.imageUrl} alt={dealProduct.name} className="w-full h-full object-contain p-20" />
+                ) : (
+                  <div className="animate-pulse bg-neutral-100 w-full h-full" />
+                )}
               </div>
-              <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent flex flex-col justify-end p-12">
-                <span className="bg-red-600 text-white text-[10px] font-bold uppercase tracking-widest px-3 py-1 w-fit mb-4">-40% OFF</span>
-                <h3 className="text-4xl lg:text-5xl font-black uppercase text-white tracking-tighter mb-2">Aurum // Elite</h3>
-                <p className="text-neutral-400 text-sm font-medium mb-8 max-w-sm">High-fidelity noise cancellation with adaptive audio engineering. Limited time offer for the modern audiophile.</p>
-                <div className="flex items-center gap-6">
+              <div className="absolute inset-0 bg-gradient-to-t from-white via-white/20 to-transparent flex flex-col justify-end p-12">
+                <span className="bg-black text-white text-[10px] font-black uppercase tracking-[0.3em] px-4 py-2 w-fit mb-4">Limited Archive Deal</span>
+                <h3 className="text-4xl lg:text-5xl font-black uppercase text-black tracking-tighter mb-2 leading-none">
+                  {dealProduct?.name || "Loading Deal..."}
+                </h3>
+                <p className="text-neutral-500 text-xs font-bold uppercase tracking-widest mb-8 max-w-sm">
+                  Exclusive archival pricing secured for the next 24 hours. Verified premium grade.
+                </p>
+                <div className="flex items-center gap-8">
                   <div>
-                    <span className="block text-sm text-neutral-500 line-through font-bold">$499.00</span>
-                    <span className="block text-3xl text-white font-black">$299.00</span>
+                    <span className="block text-sm text-neutral-400 line-through font-bold">${dealProduct ? (dealProduct.price / 0.6).toFixed(2) : "0.00"}</span>
+                    <span className="block text-4xl text-black font-black tracking-tighter">${dealProduct?.price?.toFixed(2)}</span>
                   </div>
-                  <button onClick={() => toast('Deal Claimed!')} className="bg-white text-black px-8 py-4 text-xs font-black uppercase tracking-[0.2em] hover:bg-neutral-200 transition-colors">
+                  <button
+                    disabled={!dealProduct}
+                    onClick={() => handleOptimisticAddToCart(dealProduct.id)}
+                    className="bg-black text-white px-10 py-5 text-[10px] font-black uppercase tracking-[0.4em] hover:bg-neutral-800 transition-all active:scale-95 shadow-xl disabled:opacity-50"
+                  >
                     Claim Offer
                   </button>
                 </div>
@@ -117,39 +143,35 @@ export default function HomePage() {
           </div>
 
         </div>
-      </section>
+      </section >
 
       {/* 03. FEATURED INVENTORY */}
-      <section className="py-24 px-8 lg:px-16 max-w-[1800px] mx-auto bg-neutral-50/50">
+      < section className="py-24 px-8 lg:px-16 max-w-[1800px] mx-auto bg-neutral-50/50" >
         <div className="flex justify-between items-baseline mb-16">
-          <h2 className="text-xs font-black uppercase tracking-[0.4em]">03 // Featured Inventory</h2>
-          <Link href="/products" className="text-[10px] font-black uppercase tracking-[0.2em] border-b border-black pb-1 hover:text-neutral-500 transition-colors">Browse Full Catalog</Link>
+          <h2 className="text-sm font-black uppercase tracking-tighter">Featured Inventory</h2>
         </div>
 
-        {loading ? (
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-x-8 gap-y-16">
-            {[...Array(12)].map((_, i) => <div key={i} className="aspect-[3/4] bg-neutral-100 animate-pulse" />)}
-          </div>
-        ) : (
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-x-8 gap-y-20">
-            {featuredProducts.map((product) => (
-              <ProductCard
-                key={product.id}
-                product={product}
-                onAddToCart={(id) => {
-                  cartApi.addItem(id, 1).then(() => {
-                    incrementCartCount();
-                    toast.success('Added to Cart', { duration: 2000 });
-                  });
-                }}
-              />
-            ))}
-          </div>
-        )}
-      </section>
+        {
+          loading ? (
+            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-x-8 gap-y-16">
+              {[...Array(12)].map((_, i) => <div key={i} className="aspect-[3/4] bg-neutral-100 animate-pulse" />)}
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-x-8 gap-y-20">
+              {featuredProducts.map((product) => (
+                <ProductCard
+                  key={product.id}
+                  product={product}
+                  onAddToCart={(id) => handleOptimisticAddToCart(id)}
+                />
+              ))}
+            </div>
+          )
+        }
+      </section >
 
       {/* 04. TECHNICAL SPECS FOOTER */}
-      <footer className="py-16 px-8 lg:px-16 border-t border-neutral-100 bg-black text-white">
+      < footer className="py-16 px-8 lg:px-16 border-t border-neutral-100 bg-black text-white" >
         <div className="max-w-[1800px] mx-auto grid grid-cols-2 md:grid-cols-4 gap-12 opacity-80">
           {[
             { label: 'Logistics', val: 'Global Tier 01' },
@@ -163,8 +185,8 @@ export default function HomePage() {
             </div>
           ))}
         </div>
-      </footer>
-    </div>
+      </footer >
+    </div >
   );
 }
 
@@ -173,21 +195,21 @@ const HeroSlider = () => {
   const slides = [
     {
       id: 1,
-      title: "System.01 // Audio",
+      title: "Audio",
       subtitle: "High-Fidelity Engineering",
       img: "/assets/images/products/product_headphones_1768419474302.png",
       bg: "bg-neutral-900"
     },
     {
       id: 2,
-      title: "System.02 // Optics",
+      title: "Optics",
       subtitle: "Visual Precision",
       img: "/assets/images/products/product_laptop_1768419458778.png",
       bg: "bg-neutral-800"
     },
     {
       id: 3,
-      title: "System.03 // Chrono",
+      title: "Chrono",
       subtitle: "Time Dilation",
       img: "/assets/images/products/product_watch_1768419490305.png",
       bg: "bg-stone-900"
