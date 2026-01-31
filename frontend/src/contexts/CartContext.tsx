@@ -1,10 +1,11 @@
 'use client';
 
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { cartApi } from '@/lib/api';
+import { cartApi, isBackendUnavailable } from '@/lib/api';
 
 interface CartContextType {
     cartCount: number;
+    backendUnavailable: boolean;
     updateCartCount: () => Promise<void>;
     incrementCartCount: () => void;
 }
@@ -13,14 +14,24 @@ const CartContext = createContext<CartContextType | undefined>(undefined);
 
 export function CartProvider({ children }: { children: ReactNode }) {
     const [cartCount, setCartCount] = useState(0);
+    const [backendUnavailable, setBackendUnavailable] = useState(false);
 
     const updateCartCount = async () => {
+        // Skip cart fetch when not logged in (backend requires auth for /api/cart)
+        if (typeof window !== 'undefined' && !localStorage.getItem('token')) {
+            setCartCount(0);
+            return;
+        }
         try {
             const cart = await cartApi.get();
+            setBackendUnavailable(false);
             const count = cart.items?.reduce((sum: number, item: any) => sum + item.quantity, 0) || 0;
             setCartCount(count);
         } catch (error) {
             setCartCount(0);
+            if (isBackendUnavailable(error)) {
+                setBackendUnavailable(true);
+            }
         }
     };
 
@@ -33,7 +44,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     }, []);
 
     return (
-        <CartContext.Provider value={{ cartCount, updateCartCount, incrementCartCount }}>
+        <CartContext.Provider value={{ cartCount, backendUnavailable, updateCartCount, incrementCartCount }}>
             {children}
         </CartContext.Provider>
     );

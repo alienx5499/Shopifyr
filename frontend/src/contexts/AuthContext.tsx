@@ -27,7 +27,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     useEffect(() => {
         // Check for token on mount
         const token = localStorage.getItem('token');
-        console.log('AuthContext: Initializing...', { token });
         if (token && token !== 'undefined' && token !== 'null') {
             setIsLoggedIn(true);
             // Optionally decode token to get user info or fetch from API

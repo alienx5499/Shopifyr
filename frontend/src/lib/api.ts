@@ -18,10 +18,21 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-// Handle 401 responses
+/** True when backend is down (502/503) or unreachable (network/CORS). */
+export function isBackendUnavailable(error: unknown): boolean {
+  if (!error || typeof error !== 'object') return false;
+  const e = error as { response?: { status?: number }; code?: string };
+  return e.response?.status === 502 || e.response?.status === 503 || e.code === 'ERR_NETWORK';
+}
+
+// Handle 401 responses (don't redirect on 502/503 or network errors)
 api.interceptors.response.use(
   (response) => response,
   (error) => {
+    if (isBackendUnavailable(error)) {
+      // Backend down or CORS/network: don't treat as auth failure
+      return Promise.reject(error);
+    }
     if (error.response?.status === 401) {
       localStorage.removeItem('token');
       localStorage.removeItem('user');
