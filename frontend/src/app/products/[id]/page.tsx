@@ -44,20 +44,22 @@ export default function ProductDetailPage() {
         }
     };
 
-    const handleAddToCart = async () => {
+    const handleAddToCart = () => {
         if (!product) return;
-        try {
-            await cartApi.addItem(product.id, 1);
-            incrementCartCount();
-            toast.success('Added to Cart', { duration: 2000 });
-        } catch (error: any) {
+
+        // Optimistic UI
+        incrementCartCount();
+        toast.success('Added to Cart', { id: 'detail-cart', duration: 2000 });
+
+        // Background call
+        cartApi.addItem(product.id, 1).catch((error: any) => {
             if (error.response?.status === 401) {
-                toast.error('Please login to add items to cart');
+                toast.error('Please login to add items to cart', { id: 'detail-cart' });
                 router.push('/login');
             } else {
-                toast.error('Failed to add to cart');
+                toast.error('Failed to add to cart', { id: 'detail-cart' });
             }
-        }
+        });
     };
 
     const handleAddToWishlist = async () => {
@@ -100,7 +102,7 @@ export default function ProductDetailPage() {
                         animate={{ opacity: 1, scale: 1 }}
                         src={product.imageUrl}
                         alt={product.name}
-                        className="max-h-full w-auto object-contain grayscale hover:grayscale-0 transition-all duration-1000"
+                        className="max-h-full w-auto object-contain transition-all duration-1000"
                     />
                     {/* Floating Index */}
                     <div className="absolute bottom-10 left-10 text-[10px] font-black text-neutral-300 uppercase tracking-[0.5em] rotate-180 [writing-mode:vertical-lr]">
