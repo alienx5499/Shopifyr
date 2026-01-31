@@ -26,7 +26,9 @@ RUN mkdir -p uploads
 
 EXPOSE 8080
 
-ENV JAVA_OPTS=""
+# Limit heap so the container stays under Railway memory (avoids OOM kill).
+# Override in Railway: JAVA_OPTS=-Xmx512m (or unset for no limit if you have more RAM).
+ENV JAVA_OPTS="-Xmx256m -Xms128m"
 
 ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar app.jar"]
 
