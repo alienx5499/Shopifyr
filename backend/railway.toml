@@ -9,4 +9,5 @@ watchPatterns = ["src/**", "pom.xml", "Dockerfile", "railway.toml"]
 [deploy]
 # Optional: healthcheck so Railway knows when the app is up (use a public API path)
 healthcheckPath = "/api/categories"
-healthcheckTimeout = 120
+# Spring Boot + DB validation can take 90–120s on cold start
+healthcheckTimeout = 180
