@@ -28,7 +28,14 @@ public class RailwayDataSourceEnvPostProcessor implements EnvironmentPostProcess
         if (databaseUrl == null || databaseUrl.isBlank()) {
             return;
         }
-        String jdbcUrl = databaseUrl.startsWith("jdbc:") ? databaseUrl : "jdbc:" + databaseUrl;
+        // PostgreSQL JDBC driver expects "jdbc:postgresql://", not "jdbc:postgres://"
+        String normalized = databaseUrl.trim();
+        if (normalized.startsWith("postgres://")) {
+            normalized = "postgresql://" + normalized.substring("postgres://".length());
+        } else if (normalized.startsWith("postgresql://")) {
+            // already correct
+        }
+        String jdbcUrl = normalized.startsWith("jdbc:") ? normalized : "jdbc:" + normalized;
         Map<String, Object> map = new HashMap<>();
         map.put("spring.datasource.url", jdbcUrl);
         environment.getPropertySources().addFirst(new MapPropertySource("railway-datasource", map));
