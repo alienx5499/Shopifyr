@@ -7,6 +7,6 @@ builder = "DOCKERFILE"
 watchPatterns = ["src/**", "pom.xml", "Dockerfile", "railway.toml"]
 
 [deploy]
-# Healthcheck: enable once app starts reliably (set in dashboard or uncomment below)
-# healthcheckPath = "/api/categories"
-# healthcheckTimeout = 180
+healthcheckPath = "/api/categories"
+# Spring Boot + DB validation can take 90–120s on cold start
+healthcheckTimeout = 180

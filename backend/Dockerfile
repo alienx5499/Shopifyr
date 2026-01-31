@@ -2,15 +2,17 @@ FROM eclipse-temurin:21-jdk AS builder
 
 WORKDIR /app
 
-# Copy Maven wrapper and project metadata
+# 1) Copy only Maven wrapper and POM first → dependency layer is cached by Railway
 COPY mvnw mvnw.cmd pom.xml ./
 COPY .mvn .mvn
 
-# Copy source code
+# 2) Download dependencies (cached until pom.xml changes)
+RUN chmod +x mvnw && ./mvnw dependency:go-offline -B
+
+# 3) Copy source last → only code changes trigger recompile
 COPY src src
 
-RUN chmod +x mvnw && \
-    ./mvnw -q -DskipTests package
+RUN ./mvnw -q -DskipTests package
 
 FROM eclipse-temurin:21-jre
 

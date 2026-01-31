@@ -58,9 +58,19 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(List.of(
+        // Local dev + production frontend (Vercel). Add more via CORS_ALLOWED_ORIGINS env (comma-separated).
+        List<String> origins = new java.util.ArrayList<>(List.of(
                 "http://localhost:3000",
-                "http://127.0.0.1:3000"));
+                "http://127.0.0.1:3000",
+                "https://shopifyr.vercel.app"));
+        String extra = System.getenv("CORS_ALLOWED_ORIGINS");
+        if (extra != null && !extra.isBlank()) {
+            for (String origin : extra.split(",")) {
+                String trimmed = origin.trim();
+                if (!trimmed.isEmpty()) origins.add(trimmed);
+            }
+        }
+        configuration.setAllowedOrigins(origins);
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("Authorization", "Content-Type", "Accept"));
         configuration.setAllowCredentials(true);
