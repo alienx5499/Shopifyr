@@ -139,7 +139,7 @@ function ProductsContent() {
     try {
       await cartApi.addItem(productId, 1);
       incrementCartCount();
-      toast.success(`${productName} added to cart!`);
+      toast.success('Added to Cart', { duration: 2000 });
     } catch (err: any) {
       if (err.response?.status === 401 || err.response?.status === 403) {
         toast.error('Please login to add items to cart');

@@ -125,7 +125,7 @@ export default function CartPage() {
 
       await cartApi.removeItem(itemId);
       await loadCart();
-      toast.success('Item removed');
+      toast.success('Item removed', { duration: 2000 });
     } catch (error) {
       toast.error('Failed to remove item');
       await loadCart();

@@ -137,38 +137,61 @@ public class OrderService {
                 java.time.LocalDateTime.now());
 
         boolean updated = false;
-        // PENDING -> CONFIRMED after 15 seconds
+
+        // PENDING -> SHIPPED (Visually "Confirmed") after 15 seconds
         if (order.getStatus() == OrderStatus.PENDING && secondsSinceCreation >= 15) {
-            order.setStatus(OrderStatus.CONFIRMED);
+            order.setStatus(OrderStatus.SHIPPED);
             updated = true;
         }
 
-        // CONFIRMED -> DELIVERED after 60 seconds (Simulated)
-        if (order.getStatus() == OrderStatus.CONFIRMED && secondsSinceCreation >= 60) {
+        // SHIPPED -> DELIVERED after 60 seconds (1 minute total)
+        if (order.getStatus() == OrderStatus.SHIPPED && secondsSinceCreation >= 60) {
             order.setStatus(OrderStatus.DELIVERED);
             updated = true;
         }
 
         if (updated) {
-            orderRepository.save(order);
+            try {
+                orderRepository.save(order);
+                System.out.println("Order #" + order.getId() + " status updated to " + order.getStatus());
+            } catch (Exception e) {
+                System.err.println("Failed to update order status for #" + order.getId() + ": " + e.getMessage());
+            }
         }
     }
 
     private OrderResponse toResponse(Order order) {
         List<OrderItemResponse> items = order.getItems().stream()
-                .map(item -> new OrderItemResponse(
-                        item.getId(),
-                        item.getProduct().getId(),
-                        item.getProduct().getName(),
-                        item.getQuantity(),
-                        item.getUnitPrice(),
-                        item.getUnitPrice().multiply(BigDecimal.valueOf(item.getQuantity())),
-                        item.getProduct().getImageUrl()))
+                .map(item -> {
+                    try {
+                        if (item.getProduct() == null) {
+                            throw new RuntimeException("Missing product");
+                        }
+                        return new OrderItemResponse(
+                                item.getId(),
+                                item.getProduct().getId(),
+                                item.getProduct().getName() != null ? item.getProduct().getName() : "Unknown Product",
+                                item.getQuantity(),
+                                item.getUnitPrice(),
+                                item.getUnitPrice().multiply(BigDecimal.valueOf(item.getQuantity())),
+                                item.getProduct().getImageUrl() != null ? item.getProduct().getImageUrl() : "");
+                    } catch (Exception e) {
+                        return new OrderItemResponse(
+                                item.getId(),
+                                -1L,
+                                "Corrupted Item Data",
+                                item.getQuantity() != null ? item.getQuantity() : 0,
+                                item.getUnitPrice() != null ? item.getUnitPrice() : BigDecimal.ZERO,
+                                BigDecimal.ZERO,
+                                "");
+                    }
+                })
                 .collect(Collectors.toList());
 
         java.time.LocalDateTime estimatedDelivery = null;
-        if (order.getStatus() != OrderStatus.PENDING && order.getStatus() != OrderStatus.CANCELLED) {
-            estimatedDelivery = order.getCreatedAt().plusDays(5);
+        if (order.getStatus() != OrderStatus.PENDING && order.getStatus() != OrderStatus.CANCELLED
+                && order.getCreatedAt() != null) {
+            estimatedDelivery = order.getCreatedAt().plusDays(3);
         }
 
         return new OrderResponse(
