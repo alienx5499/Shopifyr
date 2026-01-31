@@ -52,16 +52,16 @@ export const ProfessionalNavbar: React.FC = () => {
 
     return (
         <header className="relative left-0 right-0 z-50 transition-all duration-300 glass-panel mb-0">
-            <div className="container mx-auto px-6 lg:px-12">
+            <div className="max-w-[1800px] mx-auto px-8 lg:px-16">
                 <div className="flex items-center justify-between h-20 gap-12">
                     {/* Logo - Minimalist */}
-                    <Link href="/" className="flex items-center space-x-2 flex-shrink-0 group">
+                    <Link href="/" className="flex items-center gap-4 flex-shrink-0 group ml-4">
                         <div className="w-10 h-10 bg-black rounded-xl flex items-center justify-center text-white shadow-soft group-hover:scale-105 transition-transform duration-500">
                             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
                             </svg>
                         </div>
-                        <span className="text-xl font-bold text-black tracking-tight group-hover:opacity-70 transition-opacity">Shopifyr.</span>
+                        <span className="text-xl font-black text-black tracking-tighter group-hover:opacity-70 transition-opacity">Shopifyr.</span>
                     </Link>
 
                     {/* Search Bar - Floating Pill */}

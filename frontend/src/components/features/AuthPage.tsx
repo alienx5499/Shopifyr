@@ -61,7 +61,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ initialView }) => {
         try {
             const data = await authApi.login(loginData);
             login(data.accessToken, data.user);
-            setSuccessText("Welcome Back.");
+            setSuccessText("Welcome back.");
             setShowSuccess(true);
             setTimeout(() => {
                 router.push('/');
@@ -81,7 +81,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ initialView }) => {
         setLoading(true);
         try {
             await authApi.register(registerData);
-            setSuccessText("Account Created.");
+            setSuccessText("Welcome to Shopifyr.");
             setShowSuccess(true);
 
             // Login silently in background while animation plays
@@ -282,13 +282,13 @@ export const AuthPage: React.FC<AuthPageProps> = ({ initialView }) => {
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
-                        className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-black text-white"
+                        className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-black text-white"
                     >
                         {/* Premium Gradient Background */}
-                        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-neutral-800 via-black to-black opacity-80" />
+                        <div className="absolute inset-0 z-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-neutral-800 via-black to-black opacity-80" />
 
                         {/* Content */}
-                        <div className="relative z-50 flex flex-col items-center">
+                        <div className="relative z-10 flex flex-col items-center">
                             <motion.div
                                 initial={{ scale: 0.5, opacity: 0 }}
                                 animate={{ scale: 1, opacity: 1 }}
@@ -312,14 +312,6 @@ export const AuthPage: React.FC<AuthPageProps> = ({ initialView }) => {
                             >
                                 {successText}
                             </motion.h2>
-                            <motion.p
-                                initial={{ y: 20, opacity: 0 }}
-                                animate={{ y: 0, opacity: 1 }}
-                                transition={{ delay: 0.5 }}
-                                className="text-2xl text-gray-200 font-medium tracking-wide drop-shadow-lg"
-                            >
-                                Redirecting to homepage...
-                            </motion.p>
                         </div>
                     </motion.div>
                 )}
