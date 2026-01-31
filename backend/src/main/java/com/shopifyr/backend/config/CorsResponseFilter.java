@@ -5,9 +5,6 @@ import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import org.springframework.core.Ordered;
-import org.springframework.core.annotation.Order;
-import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import jakarta.servlet.FilterChain;
@@ -16,11 +13,9 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
 /**
- * Ensures CORS headers are present on every response (including errors).
- * Runs before Security so 401/404/500 responses still include CORS headers.
+ * Ensures CORS headers on every response (including preflight OPTIONS).
+ * Must be registered first via SecurityConfig so it runs before Spring Security.
  */
-@Component
-@Order(Ordered.HIGHEST_PRECEDENCE)
 public class CorsResponseFilter extends OncePerRequestFilter {
 
     private static final List<String> ALLOWED_ORIGINS = buildOrigins();
@@ -47,7 +42,8 @@ public class CorsResponseFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response,
                                    FilterChain filterChain) throws ServletException, IOException {
         String origin = request.getHeader("Origin");
-        if (origin != null && ALLOWED_ORIGINS.contains(origin)) {
+        // Always set CORS headers so preflight and actual responses pass
+        if (origin != null && (ALLOWED_ORIGINS.contains(origin) || origin.endsWith(".vercel.app"))) {
             response.setHeader("Access-Control-Allow-Origin", origin);
         }
         response.setHeader("Access-Control-Allow-Credentials", "true");
@@ -57,6 +53,7 @@ public class CorsResponseFilter extends OncePerRequestFilter {
 
         if ("OPTIONS".equalsIgnoreCase(request.getMethod())) {
             response.setStatus(HttpServletResponse.SC_OK);
+            response.setContentLength(0);
             return;
         }
 
