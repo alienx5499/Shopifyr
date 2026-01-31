@@ -7,17 +7,28 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ProductCard } from '@/components/features/ProductCard';
 import { productApi, cartApi } from '@/lib/api';
 import { useCart } from '@/contexts/CartContext';
+import { useAuth } from '@/contexts/AuthContext';
 import toast from 'react-hot-toast';
 
 export default function HomePage() {
   const router = useRouter();
+  const { isLoggedIn, isLoading: authLoading } = useAuth();
   const { incrementCartCount } = useCart();
   const [featuredProducts, setFeaturedProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    loadFeaturedProducts();
-  }, []);
+    console.log('HomePage Auth Check:', { authLoading, isLoggedIn });
+    if (!authLoading && !isLoggedIn) {
+      router.replace('/login');
+    }
+  }, [authLoading, isLoggedIn, router]);
+
+  useEffect(() => {
+    if (isLoggedIn) {
+      loadFeaturedProducts();
+    }
+  }, [isLoggedIn]);
 
   const loadFeaturedProducts = async () => {
     try {
@@ -26,6 +37,14 @@ export default function HomePage() {
     } catch (error) { console.error(error); }
     finally { setLoading(false); }
   };
+
+  if (authLoading || !isLoggedIn) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-white">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-black"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-white text-black font-sans selection:bg-black selection:text-white">
@@ -120,7 +139,7 @@ export default function HomePage() {
                 onAddToCart={(id) => {
                   cartApi.addItem(id, 1).then(() => {
                     incrementCartCount();
-                    toast.success('Archived to cart');
+                    toast.success('Added to Cart', { duration: 2000 });
                   });
                 }}
               />

@@ -117,6 +117,9 @@ export default function CheckoutPage() {
         e.preventDefault();
         setPlacing(true);
         try {
+            // Update profile with latest address details before placing order
+            await userApi.updateProfile(formData);
+
             const order = await orderApi.placeOrder();
             router.push(`/orders/${order.id}?new=true`);
         } catch (e) {

@@ -49,7 +49,7 @@ export default function ProductDetailPage() {
         try {
             await cartApi.addItem(product.id, 1);
             incrementCartCount();
-            toast.success(`Added ${product.name} to cart!`);
+            toast.success('Added to Cart', { duration: 2000 });
         } catch (error: any) {
             if (error.response?.status === 401) {
                 toast.error('Please login to add items to cart');
@@ -64,7 +64,7 @@ export default function ProductDetailPage() {
         if (!product) return;
         try {
             await watchlistApi.addToWishlist(product.id);
-            toast.success('Saved to wishlist');
+            toast.success('Saved to wishlist', { duration: 2000 });
         } catch (error: any) {
             if (error.response?.status === 401) {
                 toast.error('Please login to save items');

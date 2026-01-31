@@ -51,7 +51,7 @@ export const ProfessionalNavbar: React.FC = () => {
     if (isAuthPage) return null;
 
     return (
-        <header className="sticky top-0 left-0 right-0 z-50 transition-all duration-300 glass-panel mb-0">
+        <header className="relative left-0 right-0 z-50 transition-all duration-300 glass-panel mb-0">
             <div className="container mx-auto px-6 lg:px-12">
                 <div className="flex items-center justify-between h-20 gap-12">
                     {/* Logo - Minimalist */}
