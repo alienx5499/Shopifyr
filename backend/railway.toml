@@ -1,0 +1,12 @@
+# Railway config for Shopifyr backend (root directory = /backend)
+# Config file path in Railway dashboard: backend/railway.toml
+
+[build]
+builder = "DOCKERFILE"
+# Only redeploy when backend code changes
+watchPatterns = ["src/**", "pom.xml", "Dockerfile", "railway.toml"]
+
+[deploy]
+# Optional: healthcheck so Railway knows when the app is up (use a public API path)
+healthcheckPath = "/api/categories"
+healthcheckTimeout = 120
